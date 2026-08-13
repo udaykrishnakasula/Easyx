@@ -222,7 +222,7 @@ body {
   width: var(--d);
   height: var(--d);
   transform-style: preserve-3d;
-  animation: coinSpin 4s linear infinite;
+  animation: coinSpin 8s linear infinite;
   will-change: transform;
 }
 .coin__face,
@@ -292,7 +292,7 @@ body {
   filter: blur(6px);
   mix-blend-mode: screen;
   pointer-events: none;
-  animation: coinSheen 4s ease-in-out infinite;
+  animation: coinSheen 8s ease-in-out infinite;
 }
 .coin-shadow {
   position: absolute;
@@ -325,8 +325,8 @@ body {
   --t: clamp(4px, 0.6vw, 7px);
 }
 .coin-wrap--sub .coin-tilt { transform: rotateX(26deg) rotateZ(10deg); }
-.coin-wrap--sub .coin { animation-duration: 4.5s; animation-direction: reverse; }
-.coin-wrap--sub .coin__face::after { animation-duration: 4.5s; animation-direction: reverse; }
+.coin-wrap--sub .coin { animation-duration: 9s; animation-direction: reverse; }
+.coin-wrap--sub .coin__face::after { animation-duration: 9s; animation-direction: reverse; }
 .coin-wrap--sub .coin-float { animation-duration: 15s; animation-delay: -4s; }
 
 @keyframes coinSpin {
