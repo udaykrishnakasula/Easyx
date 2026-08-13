@@ -329,6 +329,18 @@ body {
 .coin-wrap--sub .coin__face::after { animation-duration: 5s; animation-direction: reverse; }
 .coin-wrap--sub .coin-float { animation-duration: 15s; animation-delay: -4s; }
 
+.coin-wrap--mini {
+  top: 26%;
+  right: clamp(24px, 9vw, 150px);
+  transform: translateY(-50%);
+  --d: clamp(90px, 12vw, 170px);
+  --t: clamp(3px, 0.4vw, 5px);
+}
+.coin-wrap--mini .coin-tilt { transform: rotateX(20deg) rotateZ(-9deg); }
+.coin-wrap--mini .coin { animation-duration: 7s; }
+.coin-wrap--mini .coin__face::after { animation-duration: 7s; }
+.coin-wrap--mini .coin-float { animation-duration: 17s; animation-delay: -6s; }
+
 @keyframes coinSpin {
   from { transform: rotateY(0deg); }
   to { transform: rotateY(360deg); }
@@ -449,6 +461,7 @@ body {
   .hero__text { max-width: 86%; }
   .coin-wrap--lead { top: 50%; right: -6%; --d: clamp(210px, 62vw, 320px); --t: 7px; }
   .coin-wrap--sub { top: 80%; right: 30%; --d: clamp(130px, 40vw, 200px); --t: 5px; }
+  .coin-wrap--mini { top: 20%; right: 8%; --d: clamp(66px, 22vw, 120px); --t: 4px; }
   .hero__partners { justify-content: space-between; gap: 14px; bottom: clamp(14px, 3vh, 28px); }
 }
 
