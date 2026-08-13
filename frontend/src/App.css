@@ -215,14 +215,14 @@ body {
 .coin-tilt { transform-style: preserve-3d; }
 .coin-float {
   transform-style: preserve-3d;
-  animation: coinFloat 8s ease-in-out infinite;
+  animation: coinFloat 13s ease-in-out infinite;
 }
 .coin {
   position: relative;
   width: var(--d);
   height: var(--d);
   transform-style: preserve-3d;
-  animation: coinSpin 6s linear infinite;
+  animation: coinSpin 4s linear infinite;
   will-change: transform;
 }
 .coin__face,
@@ -292,7 +292,7 @@ body {
   filter: blur(6px);
   mix-blend-mode: screen;
   pointer-events: none;
-  animation: coinSheen 6s ease-in-out infinite;
+  animation: coinSheen 4s ease-in-out infinite;
 }
 .coin-shadow {
   position: absolute;
@@ -304,7 +304,7 @@ body {
   background: radial-gradient(ellipse at center, rgba(60, 48, 92, 0.4) 0%, rgba(60, 48, 92, 0) 70%);
   filter: blur(6px);
   z-index: -1;
-  animation: coinShadow 8s ease-in-out infinite;
+  animation: coinShadow 13s ease-in-out infinite;
 }
 
 /* coin placements — same composition scaled by vw */
@@ -325,9 +325,9 @@ body {
   --t: clamp(4px, 0.6vw, 7px);
 }
 .coin-wrap--sub .coin-tilt { transform: rotateX(26deg) rotateZ(10deg); }
-.coin-wrap--sub .coin { animation-duration: 7s; animation-direction: reverse; }
-.coin-wrap--sub .coin__face::after { animation-duration: 7s; animation-direction: reverse; }
-.coin-wrap--sub .coin-float { animation-duration: 10s; animation-delay: -3s; }
+.coin-wrap--sub .coin { animation-duration: 4.5s; animation-direction: reverse; }
+.coin-wrap--sub .coin__face::after { animation-duration: 4.5s; animation-direction: reverse; }
+.coin-wrap--sub .coin-float { animation-duration: 15s; animation-delay: -4s; }
 
 @keyframes coinSpin {
   from { transform: rotateY(0deg); }
@@ -341,8 +341,9 @@ body {
   100% { transform: translateX(340%) rotate(4deg); opacity: 0; }
 }
 @keyframes coinFloat {
-  0%, 100% { transform: translateY(-14px); }
-  50% { transform: translateY(14px); }
+  0% { transform: translate3d(0, 20px, 0); }
+  50% { transform: translate3d(12px, -22px, 0); }
+  100% { transform: translate3d(0, 20px, 0); }
 }
 @keyframes coinShadow {
   0%, 100% { transform: translateX(-50%) scale(0.9); opacity: 0.35; }
