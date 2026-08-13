@@ -313,7 +313,7 @@ body {
   right: clamp(-30px, 1vw, 40px);
   transform: translateY(-50%);
   --d: clamp(240px, 33vw, 460px);
-  --t: clamp(9px, 1.6vw, 20px);
+  --t: clamp(5px, 0.95vw, 12px);
 }
 .coin-wrap--lead .coin-tilt { transform: rotateX(14deg) rotateZ(-16deg); }
 
@@ -322,7 +322,7 @@ body {
   right: clamp(60px, 20vw, 240px);
   transform: translateY(-50%);
   --d: clamp(150px, 20vw, 280px);
-  --t: clamp(6px, 1vw, 12px);
+  --t: clamp(4px, 0.6vw, 7px);
 }
 .coin-wrap--sub .coin-tilt { transform: rotateX(26deg) rotateZ(10deg); }
 .coin-wrap--sub .coin { animation-duration: 7s; animation-direction: reverse; }
@@ -446,8 +446,8 @@ body {
 @media (max-width: 560px) {
   .hero__content { align-items: flex-start; padding-top: clamp(110px, 20svh, 160px); }
   .hero__text { max-width: 86%; }
-  .coin-wrap--lead { top: 50%; right: -6%; --d: clamp(210px, 62vw, 320px); --t: 12px; }
-  .coin-wrap--sub { top: 80%; right: 30%; --d: clamp(130px, 40vw, 200px); --t: 8px; }
+  .coin-wrap--lead { top: 50%; right: -6%; --d: clamp(210px, 62vw, 320px); --t: 7px; }
+  .coin-wrap--sub { top: 80%; right: 30%; --d: clamp(130px, 40vw, 200px); --t: 5px; }
   .hero__partners { justify-content: space-between; gap: 14px; bottom: clamp(14px, 3vh, 28px); }
 }
 
