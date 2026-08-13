@@ -232,18 +232,30 @@ body {
   border-radius: 50%;
 }
 .coin__disc {
-  /* double-sided so the rim stays visible right through the 90deg flip */
+  /* smooth silver core that fills the thickness (no see-through) */
   backface-visibility: visible;
   background:
     linear-gradient(105deg,
-      rgba(255, 255, 255, 0.62) 0%,
-      rgba(255, 255, 255, 0.12) 22%,
-      rgba(120, 110, 150, 0.0) 46%,
-      rgba(40, 32, 62, 0.28) 70%,
-      rgba(255, 255, 255, 0.18) 100%),
+      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0.08) 26%,
+      rgba(120, 110, 150, 0.0) 50%,
+      rgba(40, 32, 62, 0.28) 74%,
+      rgba(255, 255, 255, 0.14) 100%),
     radial-gradient(circle at 50% 38%, #f6f4fb 0%, #d3cde3 46%, #a49dc0 74%, #6f6890 100%);
-  box-shadow: 0 0 0 1px rgba(90, 80, 120, 0.18) inset;
 }
+/* fine milled reeding — a real cylinder wall built from thin radial strips */
+.coin__reed {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--t) * 2);
+  margin-left: calc(var(--t) * -1);
+  transform-origin: center center;
+  backface-visibility: hidden;
+  border-radius: 1px;
+}
+.coin__reed--a { background: linear-gradient(90deg, #f2eef8 0%, #cbc4de 55%, #a49dbe 100%); }
+.coin__reed--b { background: linear-gradient(90deg, #b3abcc 0%, #8b83a8 55%, #6a6389 100%); }
 .coin__face {
   backface-visibility: hidden;
   overflow: hidden;

@@ -40,3 +40,11 @@ desktop & mobile, no horizontal overflow, mobile-viewport-stable (svh/dvh).
 - Added moving metallic sheen (coinSheen sweep synced to spin) + static specular hotspot; engraving
   and edge catch light. Subtle, screen-blended, no flashing.
 - Unchanged: coin positions/sizes (--d), layout, typography, background, sections, responsiveness.
+
+## Update (2026-06) — Reeded (milled) coin edge
+- Replaced the conic-gradient rim (caused moiré) with a real reeded cylinder wall:
+  thin radial strips (lead 104, sub 68) alternating light/dark = fine milled grooves
+  that run across the thickness and stay uniform all the way around the rim.
+- Discs kept as a smooth silver core (opacity fill); faces unchanged.
+- Verified edge-on (rotateY ~78deg) + running, desktop 1440 & mobile 390 — crisp grooves,
+  no moiré, no horizontal overflow. Coin positions/sizes and all other UI unchanged.
