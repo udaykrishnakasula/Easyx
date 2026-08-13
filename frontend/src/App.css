@@ -222,7 +222,7 @@ body {
   width: var(--d);
   height: var(--d);
   transform-style: preserve-3d;
-  animation: coinSpin 3.2s linear infinite;
+  animation: coinSpin 6s linear infinite;
   will-change: transform;
 }
 .coin__face,
@@ -292,7 +292,7 @@ body {
   filter: blur(6px);
   mix-blend-mode: screen;
   pointer-events: none;
-  animation: coinSheen 3.2s ease-in-out infinite;
+  animation: coinSheen 6s ease-in-out infinite;
 }
 .coin-shadow {
   position: absolute;
@@ -313,7 +313,7 @@ body {
   right: clamp(-30px, 1vw, 40px);
   transform: translateY(-50%);
   --d: clamp(240px, 33vw, 460px);
-  --t: clamp(16px, 2.6vw, 34px);
+  --t: clamp(9px, 1.6vw, 20px);
 }
 .coin-wrap--lead .coin-tilt { transform: rotateX(14deg) rotateZ(-16deg); }
 
@@ -322,11 +322,11 @@ body {
   right: clamp(60px, 20vw, 240px);
   transform: translateY(-50%);
   --d: clamp(150px, 20vw, 280px);
-  --t: clamp(10px, 1.7vw, 20px);
+  --t: clamp(6px, 1vw, 12px);
 }
 .coin-wrap--sub .coin-tilt { transform: rotateX(26deg) rotateZ(10deg); }
-.coin-wrap--sub .coin { animation-duration: 3.8s; animation-direction: reverse; }
-.coin-wrap--sub .coin__face::after { animation-duration: 3.8s; animation-direction: reverse; }
+.coin-wrap--sub .coin { animation-duration: 7s; animation-direction: reverse; }
+.coin-wrap--sub .coin__face::after { animation-duration: 7s; animation-direction: reverse; }
 .coin-wrap--sub .coin-float { animation-duration: 10s; animation-delay: -3s; }
 
 @keyframes coinSpin {
@@ -446,8 +446,8 @@ body {
 @media (max-width: 560px) {
   .hero__content { align-items: flex-start; padding-top: clamp(110px, 20svh, 160px); }
   .hero__text { max-width: 86%; }
-  .coin-wrap--lead { top: 50%; right: -6%; --d: clamp(210px, 62vw, 320px); --t: 20px; }
-  .coin-wrap--sub { top: 80%; right: 30%; --d: clamp(130px, 40vw, 200px); --t: 13px; }
+  .coin-wrap--lead { top: 50%; right: -6%; --d: clamp(210px, 62vw, 320px); --t: 12px; }
+  .coin-wrap--sub { top: 80%; right: 30%; --d: clamp(130px, 40vw, 200px); --t: 8px; }
   .hero__partners { justify-content: space-between; gap: 14px; bottom: clamp(14px, 3vh, 28px); }
 }
 
