@@ -222,7 +222,7 @@ body {
   width: var(--d);
   height: var(--d);
   transform-style: preserve-3d;
-  animation: coinSpin 18s linear infinite;
+  animation: coinSpin 3.2s linear infinite;
   will-change: transform;
 }
 .coin__face,
@@ -230,13 +230,23 @@ body {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  backface-visibility: hidden;
 }
 .coin__disc {
-  background: radial-gradient(circle at 50% 38%, #f4f2fa 0%, #cfc9e0 46%, #a49dc0 74%, #726b90 100%);
-  box-shadow: 0 0 0 1px rgba(90, 80, 120, 0.15) inset;
+  /* double-sided so the rim stays visible right through the 90deg flip */
+  backface-visibility: visible;
+  background:
+    linear-gradient(105deg,
+      rgba(255, 255, 255, 0.62) 0%,
+      rgba(255, 255, 255, 0.12) 22%,
+      rgba(120, 110, 150, 0.0) 46%,
+      rgba(40, 32, 62, 0.28) 70%,
+      rgba(255, 255, 255, 0.18) 100%),
+    radial-gradient(circle at 50% 38%, #f6f4fb 0%, #d3cde3 46%, #a49dc0 74%, #6f6890 100%);
+  box-shadow: 0 0 0 1px rgba(90, 80, 120, 0.18) inset;
 }
 .coin__face {
+  backface-visibility: hidden;
+  overflow: hidden;
   background-position: center;
   background-size: 112% 112%;
   background-repeat: no-repeat;
@@ -244,13 +254,33 @@ body {
     inset 0 0 30px rgba(80, 70, 110, 0.45),
     inset 0 6px 18px rgba(255, 255, 255, 0.35);
 }
-.coin__face::after {
+/* soft static specular hotspot (adds polished-metal depth) */
+.coin__face::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 42%);
+  background: radial-gradient(60% 45% at 34% 26%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 60%);
   mix-blend-mode: screen;
+  pointer-events: none;
+}
+/* moving studio-light sheen that sweeps once per rotation */
+.coin__face::after {
+  content: "";
+  position: absolute;
+  top: -30%;
+  left: -60%;
+  width: 55%;
+  height: 160%;
+  border-radius: 50%;
+  background: linear-gradient(105deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.75) 50%,
+    rgba(255, 255, 255, 0) 100%);
+  filter: blur(6px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: coinSheen 3.2s ease-in-out infinite;
 }
 .coin-shadow {
   position: absolute;
@@ -271,7 +301,7 @@ body {
   right: clamp(-30px, 1vw, 40px);
   transform: translateY(-50%);
   --d: clamp(240px, 33vw, 460px);
-  --t: clamp(7px, 0.95vw, 14px);
+  --t: clamp(16px, 2.6vw, 34px);
 }
 .coin-wrap--lead .coin-tilt { transform: rotateX(14deg) rotateZ(-16deg); }
 
@@ -280,15 +310,23 @@ body {
   right: clamp(60px, 20vw, 240px);
   transform: translateY(-50%);
   --d: clamp(150px, 20vw, 280px);
-  --t: clamp(5px, 0.62vw, 9px);
+  --t: clamp(10px, 1.7vw, 20px);
 }
 .coin-wrap--sub .coin-tilt { transform: rotateX(26deg) rotateZ(10deg); }
-.coin-wrap--sub .coin { animation-duration: 22s; animation-direction: reverse; }
+.coin-wrap--sub .coin { animation-duration: 3.8s; animation-direction: reverse; }
+.coin-wrap--sub .coin__face::after { animation-duration: 3.8s; animation-direction: reverse; }
 .coin-wrap--sub .coin-float { animation-duration: 10s; animation-delay: -3s; }
 
 @keyframes coinSpin {
   from { transform: rotateY(0deg); }
   to { transform: rotateY(360deg); }
+}
+@keyframes coinSheen {
+  0% { transform: translateX(0) rotate(4deg); opacity: 0; }
+  15% { opacity: 0.9; }
+  50% { transform: translateX(300%) rotate(4deg); opacity: 0.35; }
+  70% { opacity: 0; }
+  100% { transform: translateX(340%) rotate(4deg); opacity: 0; }
 }
 @keyframes coinFloat {
   0%, 100% { transform: translateY(-14px); }
@@ -396,12 +434,12 @@ body {
 @media (max-width: 560px) {
   .hero__content { align-items: flex-start; padding-top: clamp(110px, 20svh, 160px); }
   .hero__text { max-width: 86%; }
-  .coin-wrap--lead { top: 50%; right: -6%; --d: clamp(210px, 62vw, 320px); --t: 8px; }
-  .coin-wrap--sub { top: 80%; right: 30%; --d: clamp(130px, 40vw, 200px); --t: 6px; }
+  .coin-wrap--lead { top: 50%; right: -6%; --d: clamp(210px, 62vw, 320px); --t: 20px; }
+  .coin-wrap--sub { top: 80%; right: 30%; --d: clamp(130px, 40vw, 200px); --t: 13px; }
   .hero__partners { justify-content: space-between; gap: 14px; bottom: clamp(14px, 3vh, 28px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .coin { animation: none; transform: rotateY(-24deg); }
-  .coin-float, .coin-shadow { animation: none; }
+  .coin-float, .coin-shadow, .coin__face::after { animation: none; }
 }

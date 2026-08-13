@@ -32,7 +32,7 @@ export default function Hero() {
 
       {/* 3D coins — dominant foreground, same composition on every size */}
       <Coin variant="lead" testId="hero-coin-lead" />
-      <Coin variant="sub" discs={18} testId="hero-coin-sub" />
+      <Coin variant="sub" discs={34} testId="hero-coin-sub" />
 
       <div className="hero__flowers" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/assets/flowers.png)` }} />
       <div className="hero__grain" />

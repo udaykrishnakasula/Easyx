@@ -31,3 +31,12 @@ desktop & mobile, no horizontal overflow, mobile-viewport-stable (svh/dvh).
 ## Backlog / Next
 - P1: Wire "Open Wallet"/"Join us" to real routes/actions.
 - P2: Add nav links + mobile menu; "How it works" section; scroll-linked coin parallax.
+
+## Update (2026-06) — Coin animation fixes (UI/UX otherwise unchanged)
+- Rotation sped up: lead 18s→3.2s, sub 22s→3.8s (still linear/continuous, no stutter/reset).
+- Fixed paper-thin/disappearing flip: increased rim thickness (--t) + disc count (lead 46, sub 34),
+  discs now double-sided (backface-visibility:visible) so the reeded metallic edge stays visible
+  through 90deg. Verified frozen at rotateY(88deg) — solid edge, never vanishes.
+- Added moving metallic sheen (coinSheen sweep synced to spin) + static specular hotspot; engraving
+  and edge catch light. Subtle, screen-blended, no flashing.
+- Unchanged: coin positions/sizes (--d), layout, typography, background, sections, responsiveness.

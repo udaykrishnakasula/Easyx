@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
  * Pure CSS 3D coin: front + back engraved faces with a stacked-disc rim
  * that gives real depth while spinning. GPU-only transforms (rotate/translate).
  */
-export default function Coin({ variant = "lead", discs = 22, testId }) {
+export default function Coin({ variant = "lead", discs = 46, testId }) {
   const layers = useMemo(() => {
     return Array.from({ length: discs }, (_, i) => {
       const frac = discs === 1 ? 0 : -1 + (2 * i) / (discs - 1);
