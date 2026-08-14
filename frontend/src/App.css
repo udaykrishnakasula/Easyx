@@ -222,7 +222,7 @@ body {
   width: var(--d);
   height: var(--d);
   transform-style: preserve-3d;
-  animation: coinSpinA 3s linear infinite;
+  animation: coinSpinA 8s linear infinite;
   will-change: transform;
 }
 .coin__face,
@@ -292,7 +292,7 @@ body {
   filter: blur(6px);
   mix-blend-mode: screen;
   pointer-events: none;
-  animation: coinSheen 3s ease-in-out infinite;
+  animation: coinSheen 8s ease-in-out infinite;
 }
 .coin-shadow {
   position: absolute;
