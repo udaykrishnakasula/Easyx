@@ -48,3 +48,11 @@ desktop & mobile, no horizontal overflow, mobile-viewport-stable (svh/dvh).
 - Discs kept as a smooth silver core (opacity fill); faces unchanged.
 - Verified edge-on (rotateY ~78deg) + running, desktop 1440 & mobile 390 — crisp grooves,
   no moiré, no horizontal overflow. Coin positions/sizes and all other UI unchanged.
+
+## Update (2026-08) — Autoplay carousel under "What Halo does"
+- Added shadcn/ui Carousel with embla-carousel-autoplay plugin (Autoplay delay:2000, loop),
+  placed exactly below the "A digital dollar that earns on its own." heading in Sections.jsx.
+- Installed dep: embla-carousel-autoplay (embla-carousel-react already present).
+- 5 placeholder slides (basis 1/2 md, 1/3 lg) styled via .halo-carousel* in App.css.
+  User will replace placeholders with Card components next.
+- Also installed the UI UX Pro Max design-intelligence skill at /app/.claude/skills/ui-ux-pro-max.

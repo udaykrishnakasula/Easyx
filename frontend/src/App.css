@@ -407,6 +407,22 @@ body {
   gap: clamp(18px, 2vw, 28px);
   margin-top: clamp(40px, 6vw, 72px);
 }
+.halo-carousel {
+  margin-top: clamp(32px, 4vw, 52px);
+  padding: 0 clamp(12px, 3vw, 44px);
+}
+.halo-carousel__slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(160px, 20vw, 220px);
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  color: #efecf6;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 700;
+}
 .feat-card {
   border-radius: 26px;
   padding: clamp(26px, 3vw, 40px);

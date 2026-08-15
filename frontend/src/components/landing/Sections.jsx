@@ -1,6 +1,14 @@
 import React from "react";
 import { motion } from "framer-motion";
+import Autoplay from "embla-carousel-autoplay";
 import { Sparkles, Repeat, ShieldCheck, Layers, ArrowRight } from "lucide-react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
 
 const features = [
   { icon: Sparkles, title: "Native yield", body: "Rewards accrue automatically to your balance — no staking, no lockups, no manual claims." },
@@ -32,6 +40,27 @@ export default function Sections() {
           <motion.h2 className="sec-title" {...fade}>
             A digital dollar that<br />earns on its own.
           </motion.h2>
+
+          <motion.div className="halo-carousel" data-testid="halo-carousel" {...fade}>
+            <Carousel
+              opts={{ align: "start", loop: true }}
+              plugins={[
+                Autoplay({
+                  delay: 2000,
+                }),
+              ]}
+            >
+              <CarouselContent>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <CarouselItem key={n} className="md:basis-1/2 lg:basis-1/3">
+                    <div className="halo-carousel__slide font-display">{n}</div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </motion.div>
           <div className="feat-grid">
             {features.map((f, i) => (
               <motion.div
