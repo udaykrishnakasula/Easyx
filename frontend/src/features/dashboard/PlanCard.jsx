@@ -33,7 +33,7 @@ export default function PlanCard({ plan, userName, walletBalance }) {
           <UnlockedBody plan={plan} theme={theme} userName={userName}
             onView={() => navigate(`/app/investments?plan=${plan.key}`)} onBuyMore={() => setOpen(true)} />
         ) : (
-          <LockedBody plan={plan} theme={theme} onUnlock={() => setOpen(true)} />
+          <LockedBody plan={plan} onUnlock={() => setOpen(true)} />
         )}
       </div>
 
@@ -42,11 +42,11 @@ export default function PlanCard({ plan, userName, walletBalance }) {
   );
 }
 
-function LockedBody({ plan, theme, onUnlock }) {
+function LockedBody({ plan, onUnlock }) {
   return (
     <div className="relative flex-1 mt-4">
-      {/* Blurred, unreadable info behind the glass */}
-      <div className="pointer-events-none select-none blur-md opacity-50" aria-hidden="true">
+      {/* Info hidden behind a light ~10% frost */}
+      <div className="pointer-events-none select-none blur-[2px] opacity-70" aria-hidden="true">
         <div className="ex-display text-3xl font-extrabold text-white">{money(plan.price)}</div>
         <div className="mt-3 space-y-2 text-sm text-white/80">
           <div>{plan.lock_days} days lock</div>
@@ -55,16 +55,13 @@ function LockedBody({ plan, theme, onUnlock }) {
           <div>Expected profit {money(plan.profit_amount)}</div>
         </div>
       </div>
-      {/* Premium glass overlay + centered lock (EasyX language) */}
+      {/* Light-frost overlay + flat 2D yellow lock */}
       <button
         onClick={onUnlock}
         data-testid={`dash-plan-unlock-${plan.key}`}
-        className="ex-glass absolute inset-0 flex flex-col items-center justify-center gap-2 transition hover:bg-white/[0.09]"
+        className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] backdrop-blur-[3px] transition hover:bg-white/[0.06]"
       >
-        <span className="grid h-14 w-14 place-items-center rounded-full ring-1 ring-white/20"
-          style={{ background: `radial-gradient(circle at 35% 30%, ${theme.accent}44, rgba(255,255,255,0.06))` }}>
-          <Lock className="h-6 w-6 text-white" />
-        </span>
+        <Lock className="h-11 w-11 text-yellow-400" strokeWidth={2.25} />
         <span className="text-sm font-semibold text-white ex-display">Tap to unlock</span>
         <span className="text-xs text-ex-muted">Invest to reveal this plan</span>
       </button>
