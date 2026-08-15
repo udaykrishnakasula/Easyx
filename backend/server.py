@@ -18,6 +18,8 @@ load_dotenv(ROOT_DIR / '.env')
 from db import client, db  # noqa: E402
 import auth_service  # noqa: E402
 from auth_router import router as auth_router  # noqa: E402
+from user_router import router as user_router  # noqa: E402
+from admin_router import router as admin_router  # noqa: E402
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -69,6 +71,8 @@ async def get_status_checks():
 # Include the router in the main app
 app.include_router(api_router)
 app.include_router(auth_router)
+app.include_router(user_router)
+app.include_router(admin_router)
 
 
 @app.on_event("startup")

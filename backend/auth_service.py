@@ -8,7 +8,9 @@ import secrets
 import string
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 
+from bson.decimal128 import Decimal128
 from fastapi import HTTPException, status
 from pymongo import ASCENDING
 from pymongo.errors import DuplicateKeyError
@@ -82,6 +84,27 @@ async def register_user(name: str, email: str, phone: str, password: str, referr
         await db.users.insert_one(user)
     except DuplicateKeyError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email or phone already registered.")
+
+    # Bootstrap wallet + profile so every user has a wallet (backend source of truth).
+    await db.wallets.update_one(
+        {"user_id": user["id"]},
+        {"$setOnInsert": {
+            "id": str(uuid.uuid4()), "user_id": user["id"], "currency": "USDT",
+            "available_balance": Decimal128(Decimal("0")),
+            "total_invested": Decimal128(Decimal("0")),
+            "total_earned": Decimal128(Decimal("0")),
+            "version": 0, "created_at": user["created_at"], "updated_at": user["created_at"],
+        }},
+        upsert=True,
+    )
+    await db.user_profiles.update_one(
+        {"user_id": user["id"]},
+        {"$setOnInsert": {
+            "id": str(uuid.uuid4()), "user_id": user["id"], "full_name": user["name"],
+            "created_at": user["created_at"], "updated_at": user["created_at"],
+        }},
+        upsert=True,
+    )
     return user
 
 

@@ -7,7 +7,13 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import LoginPage from "@/features/auth/LoginPage";
 import RegisterPage from "@/features/auth/RegisterPage";
-import DashboardPage from "@/features/dashboard/DashboardPage";
+import DashboardLayout from "@/features/dashboard/DashboardLayout";
+import DashboardHome from "@/features/dashboard/DashboardHome";
+import InvestmentsPage from "@/features/investments/InvestmentsPage";
+import WalletPage from "@/features/wallet/WalletPage";
+import TransactionsPage from "@/features/transactions/TransactionsPage";
+import ProfilePage from "@/features/profile/ProfilePage";
+import ComingSoon from "@/features/common/ComingSoon";
 
 const Landing = () => (
   <main data-testid="landing-page">
@@ -25,15 +31,30 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+
             <Route
-              path="/app/dashboard"
+              path="/app"
               element={
                 <ProtectedRoute>
-                  <DashboardPage />
+                  <DashboardLayout />
                 </ProtectedRoute>
               }
-            />
-            <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
+            >
+              <Route index element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardHome />} />
+              <Route path="investments" element={<InvestmentsPage />} />
+              <Route path="wallet" element={<WalletPage />} />
+              <Route path="transactions" element={<TransactionsPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="deposit" element={<ComingSoon title="Deposit" note="Manual USDT deposit (TRC20/BEP20) with admin verification is coming soon." />} />
+              <Route path="withdraw" element={<ComingSoon title="Withdraw" note="KYC-gated withdrawals with admin approval are coming soon." />} />
+              <Route path="referral" element={<ComingSoon title="Referral" note="One-level referral rewards are coming soon." />} />
+              <Route path="kyc" element={<ComingSoon title="KYC" note="Identity verification (ID + selfie) is coming soon." />} />
+              <Route path="notifications" element={<ComingSoon title="Notifications" note="Important account notifications will appear here." />} />
+              <Route path="security" element={<ComingSoon title="Security" note="Password change and session security controls are coming soon." />} />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Toaster position="top-center" richColors />
         </AuthProvider>
