@@ -258,7 +258,7 @@ export function InvestmentCard({ variant = "diamond", className }) {
   return (
     <div
       className={"relative select-none " + "w-full max-w-[420px] " + (className ?? "")}
-      style={{ perspective: 1200 }}
+      style={{ perspective: 1200, containerType: "inline-size" }}
     >
       {/* Floating wrapper: idle float + hover lift. */}
       <motion.div
@@ -418,19 +418,22 @@ export function InvestmentCard({ variant = "diamond", className }) {
 
           {/* BACK */}
           <CardFace back theme={theme}>
-            <div className="relative flex h-full w-full flex-col justify-between p-5">
+            <div
+              data-testid="card-back-content"
+              className="relative flex h-full w-full flex-col justify-between p-[2.85cqw]"
+            >
               {/* Header band */}
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-[1.9cqw]">
                     <span
-                      className="text-[13px] leading-none"
+                      className="text-[3.1cqw] leading-none"
                       style={gradientText(theme.gradGlyph)}
                     >
                       ◆
                     </span>
                     <span
-                      className="text-[10px] font-semibold uppercase tracking-[0.32em]"
+                      className="text-[2.4cqw] font-semibold uppercase tracking-[0.32em]"
                       style={gradientText(theme.gradTitle)}
                     >
                       {data.certificateBrand}
@@ -439,13 +442,13 @@ export function InvestmentCard({ variant = "diamond", className }) {
                   <StatusPill label={data.back.status} theme={theme} />
                 </div>
                 {/* Notched hairline divider */}
-                <div className="relative mt-2 flex items-center">
+                <div className="relative mt-[0.95cqw] flex items-center">
                   <span
                     className="h-px flex-1"
                     style={{ background: theme.hairline }}
                   />
                   <span
-                    className="mx-1.5 text-[8px]"
+                    className="mx-[1.43cqw] text-[1.9cqw]"
                     style={{ color: theme.label }}
                   >
                     ◆
@@ -460,26 +463,26 @@ export function InvestmentCard({ variant = "diamond", className }) {
               {/* Investor hero */}
               <div>
                 <div
-                  className="text-[9px] uppercase tracking-[0.24em]"
+                  className="text-[2.15cqw] uppercase tracking-[0.24em]"
                   style={{ color: theme.label }}
                 >
                   Certificate Holder
                 </div>
                 <div
-                  className="mt-0.5 text-[22px] font-semibold leading-none tracking-tight"
+                  className="mt-[0.5cqw] text-[4.3cqw] font-semibold leading-none tracking-tight"
                   style={gradientText(theme.gradTitle)}
                 >
                   {data.back.investorName}
                 </div>
                 <div
-                  className="mt-2 inline-flex rounded-md border px-2 py-0.5 backdrop-blur-[2px]"
+                  className="mt-[1.43cqw] inline-flex rounded-md border px-[1.9cqw] py-[0.5cqw] backdrop-blur-[2px]"
                   style={{
                     borderColor: theme.serialBorder,
                     background: theme.serialBg,
                   }}
                 >
                   <span
-                    className="font-mono text-[10px] tracking-[0.24em]"
+                    className="font-mono text-[2.4cqw] tracking-[0.24em]"
                     style={{ color: theme.serialInk }}
                   >
                     {data.back.investmentId}
@@ -490,33 +493,33 @@ export function InvestmentCard({ variant = "diamond", className }) {
               {/* Timeline strip */}
               <div className="relative">
                 <div
-                  className="mb-1 flex items-center justify-between text-[8px] uppercase tracking-[0.24em]"
+                  className="mb-[0.95cqw] flex items-center justify-between text-[1.9cqw] uppercase tracking-[0.24em]"
                   style={{ color: theme.label }}
                 >
                   <span>Start</span>
                   <span>Maturity</span>
                 </div>
-                <div className="relative h-[10px]">
+                <div className="relative h-[2.4cqw]">
                   <span
                     className="absolute left-0 right-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full"
                     style={{ background: theme.timelineLine, opacity: 0.55 }}
                   />
                   <span
-                    className="absolute left-0 top-1/2 h-[8px] w-[8px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    className="absolute left-0 top-1/2 h-[1.9cqw] w-[1.9cqw] -translate-x-1/2 -translate-y-1/2 rounded-full"
                     style={{
                       background: theme.timelineNode,
                       boxShadow: `0 0 0 2px ${theme.timelineNodeRing}`,
                     }}
                   />
                   <span
-                    className="absolute right-0 top-1/2 h-[8px] w-[8px] translate-x-1/2 -translate-y-1/2 rounded-full"
+                    className="absolute right-0 top-1/2 h-[1.9cqw] w-[1.9cqw] translate-x-1/2 -translate-y-1/2 rounded-full"
                     style={{
                       background: theme.timelineNode,
                       boxShadow: `0 0 0 2px ${theme.timelineNodeRing}`,
                     }}
                   />
                   <motion.span
-                    className="absolute top-1/2 h-[10px] w-[10px] -translate-y-1/2 rounded-full"
+                    className="absolute top-1/2 h-[2.4cqw] w-[2.4cqw] -translate-y-1/2 rounded-full"
                     style={{
                       left: "45%",
                       background: theme.timelineDot,
@@ -527,7 +530,7 @@ export function InvestmentCard({ variant = "diamond", className }) {
                   />
                 </div>
                 <div
-                  className="mt-1 flex items-center justify-between text-[10px] font-medium"
+                  className="mt-[0.95cqw] flex items-center justify-between text-[2.4cqw] font-medium"
                   style={{ color: theme.value }}
                 >
                   <span>{data.back.startDate}</span>
@@ -539,28 +542,28 @@ export function InvestmentCard({ variant = "diamond", className }) {
               <div className="flex items-end justify-between">
                 <div>
                   <div
-                    className="text-[9px] uppercase tracking-[0.24em]"
+                    className="text-[2.15cqw] uppercase tracking-[0.24em]"
                     style={{ color: theme.label }}
                   >
                     Issued
                   </div>
-                  <div className="text-[10px]" style={{ color: theme.issued }}>
+                  <div className="text-[2.4cqw]" style={{ color: theme.issued }}>
                     {data.back.startDate} · Non-transferable
                   </div>
                 </div>
                 <div className="text-right">
                   <div
-                    className="text-[9px] uppercase tracking-[0.2em]"
+                    className="text-[2.15cqw] uppercase tracking-[0.2em]"
                     style={{ color: theme.label }}
                   >
                     Expected Return
                   </div>
-                  <div className="flex items-center justify-end gap-1">
-                    <span className="text-[11px]" style={{ color: theme.accent }}>
+                  <div className="flex items-center justify-end gap-[0.95cqw]">
+                    <span className="text-[2.6cqw]" style={{ color: theme.accent }}>
                       ▲
                     </span>
                     <span
-                      className="text-[18px] font-semibold leading-none"
+                      className="text-[3.8cqw] font-semibold leading-none"
                       style={gradientText(theme.gradReturn)}
                     >
                       {data.back.expectedReturn}
@@ -571,12 +574,12 @@ export function InvestmentCard({ variant = "diamond", className }) {
 
               {/* Footer: signature + seal */}
               <div
-                className="flex items-end justify-between border-t pt-2"
+                className="flex items-end justify-between border-t pt-[1.43cqw]"
                 style={{ borderColor: theme.hairlineSoft }}
               >
                 <div>
                   <div
-                    className="border-b pb-0.5 font-serif text-[17px] italic leading-none"
+                    className="border-b pb-[0.5cqw] font-serif text-[3.35cqw] italic leading-none"
                     style={{
                       letterSpacing: "0.02em",
                       color: theme.signatureInk,
@@ -586,13 +589,13 @@ export function InvestmentCard({ variant = "diamond", className }) {
                     {data.back.investorName}
                   </div>
                   <div
-                    className="mt-1 text-[8px] uppercase tracking-[0.24em]"
+                    className="mt-[0.95cqw] text-[1.9cqw] uppercase tracking-[0.24em]"
                     style={{ color: theme.label }}
                   >
                     Authorized Signature
                   </div>
                 </div>
-                <div className="relative h-[36px] w-[36px]">
+                <div className="relative h-[7.15cqw] w-[7.15cqw]">
                   <motion.div
                     aria-hidden
                     className="absolute inset-0 rounded-full"
@@ -607,7 +610,7 @@ export function InvestmentCard({ variant = "diamond", className }) {
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                   />
                   <div
-                    className="absolute inset-[3px] grid place-items-center rounded-full text-[12px]"
+                    className="absolute inset-[0.7cqw] grid place-items-center rounded-full text-[2.4cqw]"
                     style={{
                       background: theme.sealFace,
                       boxShadow: theme.sealShadow,

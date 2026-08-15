@@ -101,3 +101,103 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Test the Halo landing page investment-card carousel on the home page. Verify carousel order, front return values, back-side text not cut off, back-side date privacy, investment IDs intact, and Diamond vs Silver visual distinction."
+
+frontend:
+  - task: "Investment card carousel - carousel order"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/landing/CardCarousel.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASS - Carousel order is correct: silver, gold, platinum, diamond (verified via DOM testid attributes)"
+
+  - task: "Investment card carousel - front return values"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/landing/investment-card-themes.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASS - All cards show correct return percentages: Silver=160%, Gold=160%, Platinum=200%, Diamond=200%"
+
+  - task: "Investment card carousel - back-side content overflow/clipping"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/landing/DiamondInvestmentCard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL FAIL - Back-side content is CUT OFF on ALL cards on BOTH desktop and mobile viewports. Desktop (1440x900): Cards have scrollHeight of 282-284px but clientHeight of only 260px (content is ~22-24px taller than container). Mobile (390x844): scrollHeight of 219-222px but clientHeight of only 198px (content is ~21-24px taller). The certificate back content overflows vertically, cutting off bottom elements including the signature, seal, and footer. The card aspect ratio (aspect-[42/26]) combined with the back content padding (p-4) creates insufficient vertical space for all back-side elements. Specific overflowing elements: main card wrapper (w-[420px] max-w-[82vw]), back face wrapper (relative flex h-full w-full flex-col justify-between p-4), timeline (relative h-[10px]), footer with signature/seal (flex items-end justify-between border-t pt-1.5), and seal container (relative h-[36px] w-[36px]). This is the MAIN BUG that needs fixing."
+        - working: false
+          agent: "main"
+          comment: "Applied fix: Reduced back-side padding from p-4 to p-3 in DiamondInvestmentCard.jsx line 423 to provide more vertical space for certificate content."
+        - working: false
+          agent: "testing"
+          comment: "❌ PARTIAL FIX - Re-tested after padding reduction (p-4 → p-3). DESKTOP (1440x900): ✅ PASS - All 4 cards now have 0px overflow (scrollHeight = clientHeight = 260px). Content fits perfectly, no clipping. Visual verification confirms signature 'John Carter', 'AUTHORIZED SIGNATURE' label, and circular seal are all fully visible on flipped Silver and Diamond cards. MOBILE (390x844): ❌ FAIL - All 4 cards still have 32px overflow (scrollHeight = 230px, clientHeight = 198px). Bottom content (signature, seal, footer) is still being clipped on mobile viewport. The fix worked for desktop but mobile needs additional adjustments. DATE MASKING: ✅ PASS - All dates correctly show 'XX XX 2026' format (12 instances found), no month names or day numbers visible. INVESTMENT IDs: ✅ PASS - All 4 IDs intact and visible (INV-2026-0002, INV-2026-0003, INV-2026-0004, INV-2026-0001). RECOMMENDATION: Further reduce mobile back-side content (smaller fonts, tighter spacing, or reduce padding to p-2 on mobile breakpoint) to eliminate the 32px overflow on 390x844 viewport."
+
+  - task: "Investment card carousel - back-side date privacy"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/landing/investment-card-themes.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASS - All dates on card backs properly show 'XX XX 2026' with day and month masked. No month names (Jan, Feb, etc.) or day numbers found in date positions. The year 2026 remains visible as required. Verified on all 4 cards (silver, gold, platinum, diamond)."
+
+  - task: "Investment card carousel - investment IDs intact"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/landing/investment-card-themes.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASS - All investment IDs are intact and not masked: Silver=INV-2026-0002, Gold=INV-2026-0003, Platinum=INV-2026-0004, Diamond=INV-2026-0001"
+
+  - task: "Investment card carousel - Diamond vs Silver visual distinction"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/landing/investment-card-themes.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASS (Visual Review) - Screenshots captured of Silver and Diamond card fronts. Visual inspection shows clear distinction: Diamond card appears icy/crystalline with lighter tones and subtle blue/violet prismatic effects visible in the background gradients. Silver card appears with warmer metallic tones (more golden/beige) and less prismatic effect. The DIAMOND theme uses cooler color palette (#e4f0ff, #d6e3fb, #e7ddfb) while SILVER uses warmer neutrals (#f3f6fa, #ccd7e2). Both cards have distinct visual identities."
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Investment card carousel - back-side content overflow/clipping"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "testing"
+      message: "Completed comprehensive testing of the Halo investment card carousel. CRITICAL ISSUE FOUND: Back-side content is cut off on all cards due to vertical overflow. The card's aspect-[42/26] ratio creates a fixed height container, but the back-side content (certificate view) requires more vertical space. Content is clipped by ~22-24px on desktop and ~21-24px on mobile, cutting off the bottom signature, seal, and footer elements. All other tests passed: carousel order correct, return values correct, dates properly masked as 'XX XX 2026', investment IDs intact, and visual distinction between Diamond and Silver is clear. The overflow issue is the main bug that needs to be fixed - likely requires adjusting the back-side content layout, reducing padding, decreasing font sizes, or adjusting the card aspect ratio to accommodate all certificate elements."
+    - agent: "testing"
+      message: "RE-TEST COMPLETE after padding fix (p-4 → p-3). DESKTOP: ✅ FIXED - All cards now have 0px overflow, content fits perfectly. Visual verification shows signature, seal, and all footer elements fully visible. MOBILE: ❌ STILL FAILING - All cards have 32px overflow (scrollHeight 230px vs clientHeight 198px). Bottom content still clipped on mobile. The padding reduction fixed desktop but mobile needs more aggressive space optimization. Recommend: (1) Use responsive padding (p-3 on desktop, p-2 on mobile), OR (2) Reduce font sizes on mobile, OR (3) Tighten vertical spacing (reduce pt-1.5 to pt-1, reduce gaps). Date masking and investment IDs working correctly on both viewports."

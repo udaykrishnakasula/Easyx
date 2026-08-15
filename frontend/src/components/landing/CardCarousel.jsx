@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/carousel";
 import { InvestmentCard } from "@/components/landing/DiamondInvestmentCard";
 
-const cardVariants = ["silver", "gold", "diamond", "platinum"];
+const cardVariants = ["silver", "gold", "platinum", "diamond"];
 
 export default function CardCarousel() {
   // Create the autoplay plugin once. Slower cadence (5s between slides) and
