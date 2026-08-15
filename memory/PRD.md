@@ -65,3 +65,22 @@ desktop & mobile, no horizontal overflow, mobile-viewport-stable (svh/dvh).
   natural size (w-[420px], aspect 42/26); carousel slides sized to the card (basis-auto, center align).
 - Carousel drag disabled (watchDrag:false) so each card's own drag-to-rotate 3D interaction works;
   autoplay 2s + prev/next arrows.
+
+## Update (2026-08) — Database Foundation (Phase 2)
+- NOTE: EasyX uses **MongoDB (Motor)**, not SQL. The requested "relational schema" is
+  implemented as the MongoDB-native equivalent: collections + $jsonSchema validators +
+  unique/compound/TTL/sparse indexes + Decimal128 money + versioned migration runner.
+- Versioned migrations in `backend/migrations/` (runner + schema m0001 + seed m0002),
+  tracked in `schema_migrations`. Runs on startup (idempotent) and via `python migrate.py --verify`.
+- 20 domain collections created: users, user_profiles, email_verifications, password_resets,
+  investment_plans, investments, wallets, wallet_transactions, deposits, withdrawals,
+  withdrawal_addresses, referrals, referral_commissions, kyc_records, kyc_documents,
+  notifications, admin, audit_logs, platform_settings, maintenance_settings.
+- All money fields = **Decimal128** (validator rejects float). Status fields = enum-constrained.
+- Plans seeded EXACTLY (idempotent, $setOnInsert so admin edits are preserved):
+  Silver 300/60d/60%/160% #1; Gold 1000/60d/60%/160% #2; Platinum 5000/60d/100%/200% #3;
+  Diamond 10000/60d/100%/200% #4.
+- investments store plan-term SNAPSHOT fields (profit_/maturity_percentage_snapshot,
+  lock_days_snapshot) so future admin plan changes never mutate existing investments.
+- Verified: 21 collections present, validators enforce enums + decimal, admin login regression OK.
+- Landing page untouched.

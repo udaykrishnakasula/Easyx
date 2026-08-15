@@ -75,7 +75,9 @@ app.include_router(auth_router)
 async def _startup():
     await auth_service.ensure_indexes()
     await auth_service.seed_admin()
-    logging.getLogger(__name__).info("Startup complete: indexes ensured, admin seeded.")
+    from migrations.runner import run_migrations
+    await run_migrations(db)
+    logging.getLogger(__name__).info("Startup complete: indexes ensured, admin seeded, migrations applied.")
 
 app.add_middleware(
     CORSMiddleware,
