@@ -56,3 +56,12 @@ desktop & mobile, no horizontal overflow, mobile-viewport-stable (svh/dvh).
 - 5 placeholder slides (basis 1/2 md, 1/3 lg) styled via .halo-carousel* in App.css.
   User will replace placeholders with Card components next.
 - Also installed the UI UX Pro Max design-intelligence skill at /app/.claude/skills/ui-ux-pro-max.
+
+## Update (2026-08) — Diamond Investment Cards in carousel
+- Imported InvestmentCard (3D luxury card, 4 variants: silver/gold/diamond/platinum) from
+  github.com/udaykrishnakasula/diamond-investment-card. Converted TS -> JS:
+  /components/landing/DiamondInvestmentCard.jsx + investment-card-themes.js (deps: framer-motion, tailwind — already present).
+- Rendered dynamically in the autoplay carousel by mapping over variants. Cards kept at full
+  natural size (w-[420px], aspect 42/26); carousel slides sized to the card (basis-auto, center align).
+- Carousel drag disabled (watchDrag:false) so each card's own drag-to-rotate 3D interaction works;
+  autoplay 2s + prev/next arrows.

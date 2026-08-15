@@ -9,6 +9,9 @@ import {
   CarouselPrevious,
   CarouselNext,
 } from "@/components/ui/carousel";
+import { InvestmentCard } from "@/components/landing/DiamondInvestmentCard";
+
+const cardVariants = ["silver", "gold", "diamond", "platinum"];
 
 const features = [
   { icon: Sparkles, title: "Native yield", body: "Rewards accrue automatically to your balance — no staking, no lockups, no manual claims." },
@@ -43,17 +46,23 @@ export default function Sections() {
 
           <motion.div className="halo-carousel" data-testid="halo-carousel" {...fade}>
             <Carousel
-              opts={{ align: "start", loop: true }}
+              opts={{ align: "center", loop: true, watchDrag: false }}
               plugins={[
                 Autoplay({
                   delay: 2000,
                 }),
               ]}
             >
-              <CarouselContent>
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <CarouselItem key={n} className="md:basis-1/2 lg:basis-1/3">
-                    <div className="halo-carousel__slide font-display">{n}</div>
+              <CarouselContent className="py-12">
+                {cardVariants.map((variant) => (
+                  <CarouselItem
+                    key={variant}
+                    data-testid={`carousel-card-${variant}`}
+                    className="basis-auto shrink-0 grow-0 flex justify-center px-6"
+                  >
+                    <div className="w-[420px] max-w-[82vw]">
+                      <InvestmentCard variant={variant} className="mx-auto" />
+                    </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
