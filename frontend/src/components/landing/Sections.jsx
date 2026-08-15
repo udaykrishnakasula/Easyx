@@ -34,6 +34,9 @@ export default function Sections() {
             A digital dollar that<br />earns on its own.
           </motion.h2>
 
+          <motion.h3 className="carousel-title" data-testid="carousel-title" {...fade}>
+            <span className="carousel-title__hl">Investment plans</span>
+          </motion.h3>
           <motion.div className="easyx-carousel" data-testid="easyx-carousel" {...fade}>
             <CardCarousel />
           </motion.div>
