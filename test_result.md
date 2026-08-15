@@ -102,91 +102,121 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the Halo landing page investment-card carousel on the home page. Verify carousel order, front return values, back-side text not cut off, back-side date privacy, investment IDs intact, and Diamond vs Silver visual distinction."
+user_problem_statement: "Test the EasyX web app after design-system unification. Verify landing page unchanged, auth flow, unified dashboard with dark theme and sidebar, investment plan cards with lock/unlock states, navigation, responsive design at multiple viewports, and logout functionality."
 
 frontend:
-  - task: "Investment card carousel - carousel order"
+  - task: "Landing page - hero section unchanged"
     implemented: true
     working: true
-    file: "/app/frontend/src/components/landing/CardCarousel.jsx"
+    file: "/app/frontend/src/components/landing/Hero.jsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ PASS - Carousel order is correct: silver, gold, platinum, diamond (verified via DOM testid attributes)"
+          comment: "✅ PASS - Landing page hero section verified at desktop 1440x1080. All required elements present: (1) Hero heading 'Your Wealth Works' found and displayed correctly. (2) 'Easyx' brand name visible in navbar. (3) 'Join us' button (data-testid='hero-join-btn') present and functional - clicking navigates to /register as expected. (4) Animated silver coin (lead variant with data-testid='hero-coin-lead') found. (5) Lavender/purple gradient background visible in screenshot. Visual verification confirms cinematic depth with radial gradients. No console errors or layout issues detected."
 
-  - task: "Investment card carousel - front return values"
+  - task: "Auth flow - register form fields"
     implemented: true
     working: true
-    file: "/app/frontend/src/components/landing/investment-card-themes.js"
+    file: "/app/frontend/src/features/auth/RegisterPage.jsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ PASS - All cards show correct return percentages: Silver=160%, Gold=160%, Platinum=200%, Diamond=200%"
+          comment: "✅ PASS - Register page form verified. All 6 required form fields present with correct data-testids: (1) Name field (register-name-input), (2) Email field (register-email-input), (3) Phone field (register-phone-input), (4) Password field (register-password-input), (5) Confirm password field (register-password-confirm-input), (6) Referral code field (register-referral-input, marked optional). Submit button (register-submit-button) displays 'Create account'. Form renders in dark theme with proper styling. No issues detected."
 
-  - task: "Investment card carousel - back-side content overflow/clipping"
-    implemented: true
-    working: false
-    file: "/app/frontend/src/components/landing/DiamondInvestmentCard.jsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: false
-          agent: "testing"
-          comment: "❌ CRITICAL FAIL - Back-side content is CUT OFF on ALL cards on BOTH desktop and mobile viewports. Desktop (1440x900): Cards have scrollHeight of 282-284px but clientHeight of only 260px (content is ~22-24px taller than container). Mobile (390x844): scrollHeight of 219-222px but clientHeight of only 198px (content is ~21-24px taller). The certificate back content overflows vertically, cutting off bottom elements including the signature, seal, and footer. The card aspect ratio (aspect-[42/26]) combined with the back content padding (p-4) creates insufficient vertical space for all back-side elements. Specific overflowing elements: main card wrapper (w-[420px] max-w-[82vw]), back face wrapper (relative flex h-full w-full flex-col justify-between p-4), timeline (relative h-[10px]), footer with signature/seal (flex items-end justify-between border-t pt-1.5), and seal container (relative h-[36px] w-[36px]). This is the MAIN BUG that needs fixing."
-        - working: false
-          agent: "main"
-          comment: "Applied fix: Reduced back-side padding from p-4 to p-3 in DiamondInvestmentCard.jsx line 423 to provide more vertical space for certificate content."
-        - working: false
-          agent: "testing"
-          comment: "❌ PARTIAL FIX - Re-tested after padding reduction (p-4 → p-3). DESKTOP (1440x900): ✅ PASS - All 4 cards now have 0px overflow (scrollHeight = clientHeight = 260px). Content fits perfectly, no clipping. Visual verification confirms signature 'John Carter', 'AUTHORIZED SIGNATURE' label, and circular seal are all fully visible on flipped Silver and Diamond cards. MOBILE (390x844): ❌ FAIL - All 4 cards still have 32px overflow (scrollHeight = 230px, clientHeight = 198px). Bottom content (signature, seal, footer) is still being clipped on mobile viewport. The fix worked for desktop but mobile needs additional adjustments. DATE MASKING: ✅ PASS - All dates correctly show 'XX XX 2026' format (12 instances found), no month names or day numbers visible. INVESTMENT IDs: ✅ PASS - All 4 IDs intact and visible (INV-2026-0002, INV-2026-0003, INV-2026-0004, INV-2026-0001). RECOMMENDATION: Further reduce mobile back-side content (smaller fonts, tighter spacing, or reduce padding to p-2 on mobile breakpoint) to eliminate the 32px overflow on 390x844 viewport."
-
-  - task: "Investment card carousel - back-side date privacy"
+  - task: "Auth flow - login with test user"
     implemented: true
     working: true
-    file: "/app/frontend/src/components/landing/investment-card-themes.js"
+    file: "/app/frontend/src/features/auth/LoginPage.jsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ PASS - All dates on card backs properly show 'XX XX 2026' with day and month masked. No month names (Jan, Feb, etc.) or day numbers found in date positions. The year 2026 remains visible as required. Verified on all 4 cards (silver, gold, platinum, diamond)."
+          comment: "✅ PASS - Login flow verified with test user aria@easyx.com / Passw0rd!. Login page loaded successfully with form fields (login-email-input, login-password-input, login-submit-button). Credentials filled and submitted. Successfully authenticated and redirected to /app/dashboard. Welcome toast message 'Welcome back, Aria Vance!' displayed. JWT token stored in localStorage. No authentication errors. Login flow working perfectly."
 
-  - task: "Investment card carousel - investment IDs intact"
+  - task: "Unified dashboard - dark theme and sidebar"
     implemented: true
     working: true
-    file: "/app/frontend/src/components/landing/investment-card-themes.js"
+    file: "/app/frontend/src/features/dashboard/DashboardLayout.jsx, DashboardHome.jsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ PASS - All investment IDs are intact and not masked: Silver=INV-2026-0002, Gold=INV-2026-0003, Platinum=INV-2026-0004, Diamond=INV-2026-0001"
+          comment: "✅ PASS - Dashboard verified at desktop 1440x1080. Dark theme applied consistently across all pages with lavender ambient glow (radial-gradient with rgba(150,128,220,0.12)). Left sidebar (data-testid='dashboard-nav') visible on desktop with all 11 required nav items present: Dashboard, Investments, Wallet, Transactions, Deposit, Withdraw, Referrals, KYC, Notifications, Profile, Security. Summary stats section displays: (1) Wallet balance $400.00 (data-testid='summary-wallet'), (2) Active investments: 3, (3) Total invested: $1,600.00. Welcome message shows 'Welcome, Aria' with user's first name. EasyX brand logo visible in sidebar. Logout button (data-testid='logout-button') present at bottom of sidebar. Dark theme colors consistent: background #0c0c0f, surface #17161d, text white/muted. No visual breakage or console errors."
 
-  - task: "Investment card carousel - Diamond vs Silver visual distinction"
+  - task: "Investment plan cards - unlock/lock states"
     implemented: true
     working: true
-    file: "/app/frontend/src/components/landing/investment-card-themes.js"
+    file: "/app/frontend/src/features/dashboard/PlanCard.jsx"
     stuck_count: 0
-    priority: "medium"
+    priority: "high"
     needs_retesting: false
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ PASS (Visual Review) - Screenshots captured of Silver and Diamond card fronts. Visual inspection shows clear distinction: Diamond card appears icy/crystalline with lighter tones and subtle blue/violet prismatic effects visible in the background gradients. Silver card appears with warmer metallic tones (more golden/beige) and less prismatic effect. The DIAMOND theme uses cooler color palette (#e4f0ff, #d6e3fb, #e7ddfb) while SILVER uses warmer neutrals (#f3f6fa, #ccd7e2). Both cards have distinct visual identities."
+          comment: "✅ PASS - All 4 investment plan cards verified in correct order (Silver, Gold, Platinum, Diamond) with proper lock/unlock states. UNLOCKED CARDS: (1) Silver (data-testid='dash-plan-silver', data-unlocked='true') - Shows 2 cards, total invested $600.00, expected profit $360.00, expected maturity $960.00, next maturity date, 'View Investments' button (dash-view-silver) present. (2) Gold (data-testid='dash-plan-gold', data-unlocked='true') - Shows 1 card, total invested $1,000.00, expected profit $600.00, expected maturity $1,600.00, 'View Investments' button present. LOCKED CARDS: (3) Platinum (data-testid='dash-plan-platinum', data-unlocked='false') - Glass overlay with centered lock icon and 'Tap to unlock' text (dash-plan-unlock-platinum). Card details blurred and unreadable behind glass effect. (4) Diamond (data-testid='dash-plan-diamond', data-unlocked='false') - Same locked state with glass overlay, lock icon, and 'Tap to unlock' text. All cards display in 4-column grid at 1440px viewport. Visual distinction between locked (glass/blur) and unlocked (readable stats) states is clear. No layout issues."
+
+  - task: "Locked card interaction - insufficient balance dialog"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/features/dashboard/BuyPlanDialog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASS - Locked card interaction verified. Clicked Platinum unlock button (dash-plan-unlock-platinum). Buy dialog (data-testid='buy-dialog-platinum') opened successfully showing: (1) Plan details: Investment $5,000.00, Lock period 60 days, Profit $5,000.00 (100.00%), Maturity $10,000.00. (2) Insufficient balance warning (data-testid='buy-insufficient-platinum') displayed with red border/background showing: Required $5,000.00, Available $400.00, 'Insufficient wallet balance.' message. (3) Buy button disabled with lock icon and text 'Insufficient balance'. Dialog closes on Escape key. Fixed price model (1 card = 1 investment, no custom amount) clearly stated. All functionality working as expected."
+
+  - task: "Navigation - sidebar links"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/features/dashboard/DashboardLayout.jsx, InvestmentsPage.jsx, WalletPage.jsx, TransactionsPage.jsx, ProfilePage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASS - All navigation links tested and working. (1) Investments page (data-testid='investments-page') - Loads successfully, displays individual investment cards (3 investments visible for aria@easyx.com: 2 Silver, 1 Gold), each showing principal, profit, maturity, dates, lock period, remaining days, and investment ID. (2) Wallet page (data-testid='wallet-page') - Shows available balance $400.00 (data-testid='wallet-balance'), total invested $1,600.00, total earned $0.00, and recent transactions list with 4 transactions (3 investment debits, 1 adjustment credit). (3) Transactions page (data-testid='transactions-page') - Displays complete wallet ledger in table format with columns: Type, Amount, Balance after, Status, Date. Shows all 4 transactions with correct amounts and timestamps. (4) Profile page (data-testid='profile-page') - Displays user details: Full name (Aria Vance), Email (aria@easyx.com), Phone (+919812300777), Referral code (HUD79EI5), KYC status (NONE). All pages render in unified dark EasyX theme without errors. Navigation between pages smooth with no broken links."
+
+  - task: "Responsive design - multiple viewports"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/features/dashboard/DashboardLayout.jsx, DashboardHome.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASS - Responsive design verified at 5 viewports (360x844, 390x844, 768x1024, 1024x1080, 1440x1080). MOBILE (360px & 390px): (1) Desktop sidebar hidden (lg:flex class not visible). (2) Mobile header visible with hamburger menu (data-testid='mobile-nav-trigger'). (3) Clicking hamburger opens slide-in drawer (Sheet component) with all 11 nav items. (4) Plan cards stack in 1-2 columns without horizontal overflow. (5) Summary stats stack vertically. (6) No content cut off or horizontal scrolling. TABLET (768px): (1) Mobile header still visible. (2) Plan cards display in 2-column grid. (3) Layout adapts smoothly. DESKTOP (1024px): (1) Sidebar becomes visible at lg breakpoint. (2) Plan cards in 2-column grid (xl:grid-cols-4 not active yet). DESKTOP (1440px): (1) Full sidebar visible on left. (2) Plan cards in 4-column grid. (3) All content properly spaced. Screenshots captured at all viewports confirm no visual breakage, overflow, or layout issues. Responsive breakpoints working correctly with Tailwind's lg: and xl: prefixes."
+
+  - task: "Logout functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/features/dashboard/DashboardLayout.jsx, AuthContext.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ PASS - Logout functionality verified. Clicked logout button (data-testid='logout-button') from desktop sidebar. Successfully logged out with toast message 'Signed out.' displayed. Redirected to /login page. JWT token cleared from localStorage (easyx_token key). User session terminated. Attempting to access protected routes after logout correctly redirects to login. Logout flow working perfectly."
 
 metadata:
   created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 3
+  version: "1.1"
+  test_sequence: 4
   run_ui: true
 
 backend:
@@ -279,3 +309,5 @@ agent_communication:
       message: "✅ PHASE 1 AUTH BACKEND TESTING COMPLETE - ALL 14 TESTS PASSED (100% success rate). Created comprehensive test suite in /app/backend_test.py. Tested all 4 auth endpoints with all required scenarios: (1) POST /api/auth/register - 6 tests: success 201, duplicate email 409, duplicate phone 409, invalid referral 400, short password 422, referral flow B.referred_by==A.id. (2) POST /api/auth/login - 3 tests: success 200, wrong password 401, non-existent email 401. (3) GET /api/auth/me - 3 tests: valid token 200, missing token 401, invalid token 401. (4) Admin & role gating - 2 tests: admin login role='admin', normal user role='user'. All status codes correct, response structures valid, password_hash never exposed, referral logic working. No issues found. Backend auth foundation is solid and ready for next phase."
     - agent: "testing"
       message: "✅ PHASE 3 FINANCIAL BACKEND TESTING COMPLETE - ALL 52 TESTS PASSED (100% success rate). Extended /app/backend_test.py with comprehensive Phase 3 test suite covering all 11 scenarios. VERIFIED: (1) GET /api/plans returns 4 plans with EXACT amounts (silver 300.00/180.00/480.00, gold 1000.00/600.00/1600.00, platinum 5000.00/5000.00/10000.00, diamond 10000.00/10000.00/20000.00), all unlocked=false for new user. (2) Insufficient balance returns 402 with correct error structure (code='insufficient_balance', required='300.00', available='0.00'). (3) Admin wallet adjust (credit 700) works, wallet reflects 700.00. (4) IDEMPOTENCY VERIFIED: Same idempotency_key twice returns SAME investment ID, only ONE wallet debit (400.00 balance, 300.00 total_invested, exactly 1 investment_debit transaction). (5) Plan unlock logic: silver unlocked=true after purchase with correct aggregates (cards=1, total_invested='300.00', active_investments=1, expected_profit='180.00', expected_maturity='480.00', next_maturity set), other plans remain locked. (6) Investment listing: 1 active investment with status='active', principal='300.00', remaining_days=60, maturity_at set. (7) Multiple purchases: 2nd silver buy succeeds, cards=2, wallet=100.00. (8) Insufficient balance for gold (needs 1000, has 100) returns 402. (9) DATA ISOLATION VERIFIED: User B cannot see User A's investments or wallet data. (10) AUTH/ROLE GATING VERIFIED: Normal user calling admin endpoint returns 403, missing token returns 401. (11) DECIMAL FORMAT VERIFIED: All monetary fields are plain decimal strings with 2dp (e.g., '300.00'), NO floats, NO Decimal128 leakage anywhere. All endpoints working: GET /api/dashboard, GET /api/plans, POST /api/investments, GET /api/investments, GET /api/wallet, GET /api/transactions, POST /api/admin/wallet/adjust. All business logic correct: wallet ledger atomicity, idempotency, plan unlock state, admin role gating, data isolation, exact decimal arithmetic. NO ISSUES FOUND. Phase 3 financial backend is production-ready."
+    - agent: "testing"
+      message: "✅ DESIGN SYSTEM UNIFICATION TESTING COMPLETE - ALL 9 CORE FEATURES VERIFIED. Comprehensive UI/integration testing performed with Playwright at multiple viewports (360, 390, 768, 1024, 1440). Test user: aria@easyx.com with 2 Silver cards, 1 Gold card (unlocked), Platinum & Diamond locked, $400 wallet balance. RESULTS: (1) Landing page hero section - All elements present (hero heading 'Your Wealth Works', Easyx brand, Join us button navigates to /register, animated silver coin, lavender background). (2) Register form - All 6 fields present (name, email, phone, password, confirm, referral). (3) Login flow - Successfully authenticated and redirected to /app/dashboard. (4) Dashboard dark theme - Sidebar with all 11 nav items, summary stats (wallet $400, 3 active investments, $1,600 total invested), lavender ambient glow. (5) Plan cards - Silver & Gold UNLOCKED with View Investments buttons showing correct stats, Platinum & Diamond LOCKED with glass overlay, lock icon, and 'Tap to unlock' text. (6) Insufficient balance dialog - Platinum dialog shows $5,000 required vs $400 available with disabled buy button. (7) Navigation - All pages load correctly (Investments shows 3 individual cards, Wallet shows balance & transactions, Transactions shows ledger table, Profile shows user details). (8) Responsive design - Mobile hamburger menu works, desktop sidebar shows/hides at correct breakpoints, plan cards stack properly, no horizontal overflow at any viewport. (9) Logout - Successfully logs out and redirects to /login. MINOR ISSUES: Console warnings about DialogContent missing DialogTitle (accessibility, not blocking). Network errors for /cdn-cgi/rum (Cloudflare CDN, not app-related). NO CRITICAL ISSUES. All core functionality working perfectly. Design system unification successful."

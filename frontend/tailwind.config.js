@@ -7,12 +7,45 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['"Bricolage Grotesque"', '"Manrope"', 'sans-serif'],
+        body: ['Manrope', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        'ex-btn': '0 14px 34px -12px rgba(20,12,45,0.55)',
+        'ex-card': '0 24px 70px -34px rgba(150,128,220,0.55)',
+      },
+      transitionTimingFunction: {
+        ex: 'cubic-bezier(0.2,0.8,0.2,1)',
+      },
+      backgroundImage: {
+        'ex-accent': 'linear-gradient(100deg,#d8c8ff 0%,#b79cff 45%,#8f6bff 100%)',
+        'ex-icon': 'linear-gradient(150deg,#b9aee3,#6f61a6)',
+        'ex-surface': 'linear-gradient(160deg,#17161d 0%,#121118 100%)',
+        'ex-cta': 'radial-gradient(120% 140% at 50% 0%, rgba(150,128,220,0.5) 0%, rgba(150,128,220,0) 60%), linear-gradient(160deg,#17161d,#0c0c0f)',
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)'
+        sm: 'calc(var(--radius) - 4px)',
+        ex: '26px',
+        'ex-lg': '34px',
+        'ex-ctrl': '14px',
       },
       colors: {
+        ex: {
+          ink: '#0c0c0f',
+          surface: '#17161d',
+          surface2: '#121118',
+          text: '#efecf6',
+          muted: '#a7a1b8',
+          faint: '#7d7690',
+          purple: '#8f6bff',
+          lav: {
+            50: '#f5f3fa', 100: '#ece8f5', 200: '#ddd6ec',
+            300: '#c7bde0', 400: '#b79cff', 500: '#8b7fb0', 700: '#574d73',
+          },
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

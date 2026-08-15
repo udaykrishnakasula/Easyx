@@ -6,8 +6,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/context/AuthContext";
 
 const NAV = [
@@ -17,7 +16,7 @@ const NAV = [
   { to: "/app/transactions", label: "Transactions", icon: ReceiptText },
   { to: "/app/deposit", label: "Deposit", icon: ArrowDownToLine },
   { to: "/app/withdraw", label: "Withdraw", icon: ArrowUpFromLine },
-  { to: "/app/referral", label: "Referral", icon: Users },
+  { to: "/app/referral", label: "Referrals", icon: Users },
   { to: "/app/kyc", label: "KYC", icon: ShieldCheck },
   { to: "/app/notifications", label: "Notifications", icon: Bell },
   { to: "/app/profile", label: "Profile", icon: User },
@@ -33,8 +32,10 @@ function NavItems({ onNavigate }) {
           to={to}
           onClick={onNavigate}
           className={({ isActive }) =>
-            `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
-              isActive ? "bg-white text-black font-semibold" : "text-white/70 hover:bg-white/10 hover:text-white"
+            `flex items-center gap-3 rounded-ex-ctrl px-3 py-2.5 text-sm transition duration-300 ease-ex ${
+              isActive
+                ? "bg-ex-accent text-ex-ink font-semibold shadow-ex-btn"
+                : "text-ex-muted hover:bg-white/8 hover:text-ex-text"
             }`
           }
         >
@@ -48,9 +49,9 @@ function NavItems({ onNavigate }) {
 
 function Brand() {
   return (
-    <div className="flex items-center gap-2 px-1">
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-white text-black font-display font-extrabold">E</span>
-      <span className="font-display text-xl font-extrabold tracking-tight text-white">Easyx</span>
+    <div className="flex items-center gap-2.5 px-1">
+      <span className="grid h-9 w-9 place-items-center rounded-ex-ctrl bg-ex-ink text-white ex-display text-lg font-extrabold ring-1 ring-white/10">E</span>
+      <span className="ex-display text-xl font-extrabold tracking-tight text-ex-text">Easyx</span>
     </div>
   );
 }
@@ -67,42 +68,49 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0b14] text-white font-body">
+    <div className="ex-app-bg min-h-screen">
+      {/* Ambient lavender glow, echoing the landing's cinematic depth */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          background:
+            "radial-gradient(50% 40% at 85% 0%, rgba(150,128,220,0.12) 0%, rgba(12,12,15,0) 60%)",
+        }}
+      />
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-white/10 bg-[#0f0d18] p-4">
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-20 w-64 flex-col border-r border-white/8 bg-ex-surface2 p-4">
         <Brand />
-        <div className="mt-6 flex-1 overflow-y-auto"><NavItems /></div>
-        <Button onClick={handleLogout} variant="outline"
-          className="mt-4 rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10" data-testid="logout-button">
+        <div className="mt-7 flex-1 overflow-y-auto pr-1"><NavItems /></div>
+        <button onClick={handleLogout} className="ex-btn ex-btn-ghost mt-4 h-11 w-full" data-testid="logout-button">
           <LogOut className="mr-2 h-4 w-4" /> Logout
-        </Button>
+        </button>
       </aside>
 
       {/* Mobile top bar */}
-      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[#0d0b14]/90 backdrop-blur-xl px-4 py-3">
+      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b border-white/8 bg-ex-ink/90 backdrop-blur-xl px-4 py-3">
         <Sheet open={openMobile} onOpenChange={setOpenMobile}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" data-testid="mobile-nav-trigger">
+            <button className="grid h-10 w-10 place-items-center rounded-ex-ctrl text-ex-text hover:bg-white/10" data-testid="mobile-nav-trigger">
               <Menu className="h-5 w-5" />
-            </Button>
+            </button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 bg-[#0f0d18] border-white/10 p-4">
+          <SheetContent side="left" className="w-72 bg-ex-surface2 border-white/8 p-4 text-ex-text">
+            <SheetTitle className="sr-only">EasyX navigation</SheetTitle>
             <Brand />
-            <div className="mt-6"><NavItems onNavigate={() => setOpenMobile(false)} /></div>
-            <Button onClick={handleLogout} variant="outline"
-              className="mt-4 w-full rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+            <div className="mt-7"><NavItems onNavigate={() => setOpenMobile(false)} /></div>
+            <button onClick={handleLogout} className="ex-btn ex-btn-ghost mt-4 h-11 w-full">
               <LogOut className="mr-2 h-4 w-4" /> Logout
-            </Button>
+            </button>
           </SheetContent>
         </Sheet>
         <Brand />
-        <div className="h-8 w-8 rounded-full bg-white/10 grid place-items-center text-xs font-semibold">
+        <div className="h-9 w-9 rounded-full bg-white/10 grid place-items-center text-xs font-semibold ring-1 ring-white/10">
           {(user?.name || "U").charAt(0).toUpperCase()}
         </div>
       </header>
 
-      <main className="lg:pl-64">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <main className="relative z-10 lg:pl-64">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-9">
           <Outlet />
         </div>
       </main>

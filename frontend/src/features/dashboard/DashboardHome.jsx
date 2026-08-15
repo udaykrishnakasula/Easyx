@@ -1,49 +1,48 @@
 import React from "react";
-import { Loader2, Wallet as WalletIcon } from "lucide-react";
+import { Wallet as WalletIcon, TrendingUp, Layers } from "lucide-react";
 
 import { useDashboard, money } from "./api";
 import PlanCard from "./PlanCard";
+import { EasyXStat, Eyebrow, EasyXLoader, EasyXEmptyState } from "@/design/EasyX";
 
 export default function DashboardHome() {
   const { data, isLoading, isError } = useDashboard();
 
-  if (isLoading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-white/60" /></div>;
-  }
+  if (isLoading) return <EasyXLoader className="py-24" />;
   if (isError || !data) {
-    return <div className="py-24 text-center text-white/60">Could not load your dashboard. Please refresh.</div>;
+    return <EasyXEmptyState icon={WalletIcon} title="Could not load your dashboard" note="Please refresh the page." />;
   }
 
   const { user, wallet, plans, totals } = data;
 
   return (
     <div data-testid="dashboard-home">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-display text-2xl sm:text-3xl font-bold">Welcome, {user.name?.split(" ")[0]}</h1>
-        <p className="text-white/55 text-sm">Grow your USDT with EasyX investment plans.</p>
+      {/* Intro — "the landing, after entering the product" */}
+      <div className="relative overflow-hidden rounded-ex-lg border border-white/8 p-6 sm:p-8"
+        style={{ background: "radial-gradient(120% 140% at 100% 0%, rgba(150,128,220,0.22) 0%, rgba(23,22,29,0) 55%), linear-gradient(160deg,#17161d,#0c0c0f)" }}>
+        <Eyebrow>Your EasyX portfolio</Eyebrow>
+        <h1 className="mt-2 ex-display text-3xl sm:text-4xl font-extrabold tracking-tight leading-[1.02]">
+          Welcome, <span className="ex-accent-text">{user.name?.split(" ")[0]}</span>
+        </h1>
+        <p className="mt-2 text-ex-muted text-sm sm:text-base max-w-md">
+          Grow your USDT with EasyX investment plans. Your wealth works while you rest.
+        </p>
       </div>
 
-      {/* Summary strip */}
-      <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4" data-testid="summary-wallet">
-          <div className="flex items-center gap-2 text-white/50 text-xs"><WalletIcon className="h-4 w-4" /> Wallet balance</div>
-          <div className="mt-1 font-display text-2xl font-bold">{money(wallet.available_balance)}</div>
-          <div className="text-xs text-white/40">{wallet.currency}</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-          <div className="text-white/50 text-xs">Active investments</div>
-          <div className="mt-1 font-display text-2xl font-bold">{totals.active_investments}</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-          <div className="text-white/50 text-xs">Total invested</div>
-          <div className="mt-1 font-display text-2xl font-bold">{money(wallet.total_invested)}</div>
-        </div>
+      {/* Summary stats */}
+      <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div data-testid="summary-wallet"><EasyXStat label="Wallet balance" value={money(wallet.available_balance)} icon={WalletIcon} gradient /></div>
+        <EasyXStat label="Active investments" value={totals.active_investments} icon={Layers} />
+        <EasyXStat label="Total invested" value={money(wallet.total_invested)} icon={TrendingUp} />
       </div>
 
       {/* Plan cards */}
-      <div className="mt-8 flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold">Investment plans</h2>
-        <span className="text-xs text-white/45">1 card = 1 investment</span>
+      <div className="mt-9 flex items-end justify-between">
+        <div>
+          <Eyebrow>Investment plans</Eyebrow>
+          <h2 className="mt-1 ex-display text-xl sm:text-2xl font-extrabold">Choose your tier</h2>
+        </div>
+        <span className="text-xs text-ex-muted">1 card = 1 investment</span>
       </div>
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {plans.map((p) => (
