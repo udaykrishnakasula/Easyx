@@ -38,8 +38,12 @@ async def investments(plan_key: Optional[str] = Query(default=None),
 
 @router.get("/wallet")
 async def wallet(user: dict = Depends(get_current_user)):
-    w = await wallet_service.get_or_create_wallet(user["id"])
-    return wallet_service.serialize_wallet(w)
+    return await wallet_service.wallet_summary(user["id"])
+
+
+@router.get("/wallet/consistency")
+async def wallet_consistency(user: dict = Depends(get_current_user)):
+    return await wallet_service.check_consistency(user["id"])
 
 
 @router.get("/transactions")

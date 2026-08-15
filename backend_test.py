@@ -1122,6 +1122,737 @@ try:
 except Exception as e:
     log_test("Decimal format check", False, detail=f"Exception: {str(e)}")
 
+################################################################################
+# PHASE 5: WALLET & LEDGER SYSTEM
+################################################################################
+
+print("\n" + "=" * 80)
+print("\n🏦 PHASE 5: WALLET & LEDGER SYSTEM")
+print("=" * 80)
+print("Testing wallet balances (available/locked/total_portfolio), canonical ledger,")
+print("consistency checks, negative balance prevention, and idempotency.")
+print("=" * 80)
+
+# Generate unique test data for Phase 5
+phase5_timestamp = int(time.time() * 1000)
+phase5_user_email = f"phase5user{phase5_timestamp}@easyx.com"
+phase5_user_phone = f"+91{phase5_timestamp % 10000000000}"
+phase5_user_password = "Phase5Pass123!"
+phase5_user_name = "Phase Five User"
+phase5_user_token = None
+phase5_user_id = None
+
+print("\n📋 SCENARIO 1: New user wallet - all balances '0.00'")
+print("-" * 80)
+
+# Register new user for Phase 5 testing
+print("\n1️⃣  Registering new Phase 5 test user...")
+try:
+    reg_response = requests.post(
+        f"{BASE_URL}/auth/register",
+        json={
+            "name": phase5_user_name,
+            "email": phase5_user_email,
+            "phone": phase5_user_phone,
+            "password": phase5_user_password
+        },
+        timeout=10
+    )
+    
+    if reg_response.status_code == 201:
+        reg_data = reg_response.json()
+        phase5_user_token = reg_data.get("access_token")
+        phase5_user_id = reg_data.get("user", {}).get("id")
+        log_test("Phase 5 user registration", True, 201)
+    else:
+        log_test("Phase 5 user registration", False, reg_response.status_code, 201)
+        print("❌ Cannot proceed with Phase 5 tests without user registration")
+except Exception as e:
+    log_test("Phase 5 user registration", False, detail=f"Exception: {str(e)}")
+    print("❌ Cannot proceed with Phase 5 tests")
+
+# Test 1: New user GET /api/wallet -> all balances "0.00"
+if phase5_user_token:
+    print("\n2️⃣  Testing new user wallet - all balances should be '0.00'...")
+    try:
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            
+            # Check all required fields exist
+            required_fields = ["available_balance", "locked_investment", "total_portfolio", 
+                             "total_invested", "total_earned"]
+            missing_fields = [f for f in required_fields if f not in wallet]
+            
+            if missing_fields:
+                log_test("New user wallet has all required fields", False, 200, 
+                        detail=f"Missing: {missing_fields}")
+            else:
+                log_test("New user wallet has all required fields", True, 200)
+                
+                # Check all are "0.00" decimal strings
+                all_zero = all(wallet.get(f) == "0.00" for f in required_fields)
+                log_test("New user wallet all balances are '0.00'", all_zero, 200,
+                        detail=f"Values: {wallet}")
+                
+                # Check no Decimal128 leakage
+                no_decimal128 = "$numberDecimal" not in str(wallet)
+                log_test("New user wallet no Decimal128 leakage", no_decimal128, 200)
+                
+                # Check all are strings, not floats
+                all_strings = all(isinstance(wallet.get(f), str) for f in required_fields)
+                log_test("New user wallet all balances are strings", all_strings, 200)
+        else:
+            log_test("GET /api/wallet for new user", False, wallet_response.status_code, 200)
+    except Exception as e:
+        log_test("New user wallet check", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 SCENARIO 2: Admin credit 2000 -> verify wallet and ledger")
+print("-" * 80)
+
+# Get admin token
+if not admin_token:
+    print("\n1️⃣  Logging in as admin...")
+    try:
+        admin_login_response = requests.post(
+            f"{BASE_URL}/auth/login",
+            json={"email": "admin@easyx.com", "password": "Admin@Easyx2026"},
+            timeout=10
+        )
+        if admin_login_response.status_code == 200:
+            admin_token = admin_login_response.json().get("access_token")
+            log_test("Admin login for Phase 5", True, 200)
+        else:
+            log_test("Admin login for Phase 5", False, admin_login_response.status_code, 200)
+    except Exception as e:
+        log_test("Admin login for Phase 5", False, detail=f"Exception: {str(e)}")
+
+# Admin credit 2000
+if admin_token and phase5_user_id:
+    print("\n2️⃣  Admin crediting 2000 to user wallet...")
+    try:
+        adjust_response = requests.post(
+            f"{BASE_URL}/admin/wallet/adjust",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={
+                "user_id": phase5_user_id,
+                "amount": "2000",
+                "direction": "credit",
+                "note": "Phase 5 test credit"
+            },
+            timeout=10
+        )
+        
+        if adjust_response.status_code == 200:
+            tx = adjust_response.json()
+            
+            # Verify transaction details
+            correct_type = tx.get("type") == "ADMIN_ADJUSTMENT"
+            correct_direction = tx.get("direction") == "credit"
+            correct_amount = tx.get("amount") == "2000.00"
+            
+            log_test("Admin credit 2000 - transaction type ADMIN_ADJUSTMENT", correct_type, 200)
+            log_test("Admin credit 2000 - direction credit", correct_direction, 200)
+            log_test("Admin credit 2000 - amount '2000.00'", correct_amount, 200)
+            
+            # Check wallet after credit
+            wallet_response = requests.get(
+                f"{BASE_URL}/wallet",
+                headers={"Authorization": f"Bearer {phase5_user_token}"},
+                timeout=10
+            )
+            
+            if wallet_response.status_code == 200:
+                wallet = wallet_response.json()
+                
+                available_correct = wallet.get("available_balance") == "2000.00"
+                locked_correct = wallet.get("locked_investment") == "0.00"
+                total_correct = wallet.get("total_portfolio") == "2000.00"
+                
+                log_test("After credit: available_balance '2000.00'", available_correct, 200,
+                        detail=f"Got: {wallet.get('available_balance')}")
+                log_test("After credit: locked_investment '0.00'", locked_correct, 200,
+                        detail=f"Got: {wallet.get('locked_investment')}")
+                log_test("After credit: total_portfolio '2000.00'", total_correct, 200,
+                        detail=f"Got: {wallet.get('total_portfolio')}")
+            
+            # Check transactions ledger
+            tx_response = requests.get(
+                f"{BASE_URL}/transactions",
+                headers={"Authorization": f"Bearer {phase5_user_token}"},
+                timeout=10
+            )
+            
+            if tx_response.status_code == 200:
+                transactions = tx_response.json()
+                
+                # Should have exactly 1 transaction
+                tx_count = len(transactions)
+                log_test("After credit: exactly 1 ledger entry", tx_count == 1, 200,
+                        detail=f"Got {tx_count} transactions")
+                
+                if tx_count > 0:
+                    first_tx = transactions[0]
+                    tx_type_correct = first_tx.get("type") == "ADMIN_ADJUSTMENT"
+                    tx_dir_correct = first_tx.get("direction") == "credit"
+                    tx_amt_correct = first_tx.get("amount") == "2000.00"
+                    
+                    log_test("Ledger entry: type ADMIN_ADJUSTMENT", tx_type_correct, 200)
+                    log_test("Ledger entry: direction credit", tx_dir_correct, 200)
+                    log_test("Ledger entry: amount '2000.00'", tx_amt_correct, 200)
+        else:
+            log_test("Admin credit 2000", False, adjust_response.status_code, 200,
+                    detail=adjust_response.text)
+    except Exception as e:
+        log_test("Admin credit 2000", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 SCENARIO 3: Buy silver + gold -> verify locked/available split")
+print("-" * 80)
+
+# Buy silver (300) with idempotency_key "S1"
+if phase5_user_token:
+    print("\n1️⃣  Buying silver plan (300) with idempotency_key 'S1'...")
+    try:
+        silver_response = requests.post(
+            f"{BASE_URL}/investments",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            json={"plan_key": "silver", "idempotency_key": "S1"},
+            timeout=10
+        )
+        
+        if silver_response.status_code == 201:
+            log_test("Buy silver plan", True, 201)
+        else:
+            log_test("Buy silver plan", False, silver_response.status_code, 201,
+                    detail=silver_response.text)
+    except Exception as e:
+        log_test("Buy silver plan", False, detail=f"Exception: {str(e)}")
+    
+    # Buy gold (1000) with idempotency_key "G1"
+    print("\n2️⃣  Buying gold plan (1000) with idempotency_key 'G1'...")
+    try:
+        gold_response = requests.post(
+            f"{BASE_URL}/investments",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            json={"plan_key": "gold", "idempotency_key": "G1"},
+            timeout=10
+        )
+        
+        if gold_response.status_code == 201:
+            log_test("Buy gold plan", True, 201)
+        else:
+            log_test("Buy gold plan", False, gold_response.status_code, 201,
+                    detail=gold_response.text)
+    except Exception as e:
+        log_test("Buy gold plan", False, detail=f"Exception: {str(e)}")
+    
+    # Check wallet after both purchases
+    print("\n3️⃣  Checking wallet after silver + gold purchases...")
+    try:
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            
+            # Expected: available 700, locked 1300, total 2000
+            available_correct = wallet.get("available_balance") == "700.00"
+            locked_correct = wallet.get("locked_investment") == "1300.00"
+            total_correct = wallet.get("total_portfolio") == "2000.00"
+            
+            log_test("After investments: available_balance '700.00'", available_correct, 200,
+                    detail=f"Got: {wallet.get('available_balance')}")
+            log_test("After investments: locked_investment '1300.00'", locked_correct, 200,
+                    detail=f"Got: {wallet.get('locked_investment')}")
+            log_test("After investments: total_portfolio '2000.00' (unchanged)", total_correct, 200,
+                    detail=f"Got: {wallet.get('total_portfolio')}")
+        else:
+            log_test("GET /api/wallet after investments", False, wallet_response.status_code, 200)
+    except Exception as e:
+        log_test("Wallet check after investments", False, detail=f"Exception: {str(e)}")
+    
+    # Check transactions ledger
+    print("\n4️⃣  Checking ledger for INVESTMENT debits...")
+    try:
+        tx_response = requests.get(
+            f"{BASE_URL}/transactions",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if tx_response.status_code == 200:
+            transactions = tx_response.json()
+            
+            # Should have 3 transactions: 1 credit + 2 investment debits
+            tx_count = len(transactions)
+            log_test("After investments: 3 ledger entries total", tx_count == 3, 200,
+                    detail=f"Got {tx_count} transactions")
+            
+            # Find INVESTMENT transactions
+            investment_txs = [t for t in transactions if t.get("type") == "INVESTMENT"]
+            log_test("Ledger has 2 INVESTMENT entries", len(investment_txs) == 2, 200,
+                    detail=f"Got {len(investment_txs)} INVESTMENT entries")
+            
+            if len(investment_txs) == 2:
+                amounts = sorted([t.get("amount") for t in investment_txs])
+                expected_amounts = ["300.00", "1000.00"]
+                amounts_correct = amounts == expected_amounts
+                
+                log_test("INVESTMENT debits are '300.00' and '1000.00'", amounts_correct, 200,
+                        detail=f"Got: {amounts}")
+                
+                # All should be debit direction
+                all_debits = all(t.get("direction") == "debit" for t in investment_txs)
+                log_test("All INVESTMENT entries are debits", all_debits, 200)
+        else:
+            log_test("GET /api/transactions after investments", False, tx_response.status_code, 200)
+    except Exception as e:
+        log_test("Transactions check after investments", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 SCENARIO 4: Consistency check")
+print("-" * 80)
+
+if phase5_user_token:
+    print("\n1️⃣  Checking wallet consistency...")
+    try:
+        consistency_response = requests.get(
+            f"{BASE_URL}/wallet/consistency",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if consistency_response.status_code == 200:
+            consistency = consistency_response.json()
+            
+            is_consistent = consistency.get("consistent") == True
+            available_matches = consistency.get("available_balance") == "700.00"
+            ledger_matches = consistency.get("ledger_balance") == "700.00"
+            balances_equal = consistency.get("available_balance") == consistency.get("ledger_balance")
+            
+            log_test("Consistency check: consistent=true", is_consistent, 200,
+                    detail=f"Got: {consistency}")
+            log_test("Consistency: available_balance '700.00'", available_matches, 200,
+                    detail=f"Got: {consistency.get('available_balance')}")
+            log_test("Consistency: ledger_balance '700.00'", ledger_matches, 200,
+                    detail=f"Got: {consistency.get('ledger_balance')}")
+            log_test("Consistency: available_balance == ledger_balance", balances_equal, 200)
+        else:
+            log_test("GET /api/wallet/consistency", False, consistency_response.status_code, 200)
+    except Exception as e:
+        log_test("Consistency check", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 SCENARIO 5: Negative balance prevention")
+print("-" * 80)
+
+if phase5_user_token:
+    print("\n1️⃣  Attempting to buy platinum (5000) with only 700 available...")
+    try:
+        platinum_response = requests.post(
+            f"{BASE_URL}/investments",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            json={"plan_key": "platinum"},
+            timeout=10
+        )
+        
+        # Should get 402 Payment Required
+        if platinum_response.status_code == 402:
+            detail = platinum_response.json().get("detail", {})
+            
+            correct_code = detail.get("code") == "insufficient_balance"
+            correct_required = detail.get("required") == "5000.00"
+            correct_available = detail.get("available") == "700.00"
+            
+            log_test("Insufficient balance: returns 402", True, 402)
+            log_test("Insufficient balance: detail.code 'insufficient_balance'", correct_code, 402,
+                    detail=f"Got: {detail.get('code')}")
+            log_test("Insufficient balance: required '5000.00'", correct_required, 402,
+                    detail=f"Got: {detail.get('required')}")
+            log_test("Insufficient balance: available '700.00'", correct_available, 402,
+                    detail=f"Got: {detail.get('available')}")
+        else:
+            log_test("Insufficient balance returns 402", False, platinum_response.status_code, 402,
+                    detail=platinum_response.text)
+    except Exception as e:
+        log_test("Insufficient balance check", False, detail=f"Exception: {str(e)}")
+    
+    # Verify wallet unchanged
+    print("\n2️⃣  Verifying wallet balance unchanged after failed purchase...")
+    try:
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            
+            available_unchanged = wallet.get("available_balance") == "700.00"
+            log_test("After failed purchase: available_balance still '700.00'", available_unchanged, 200,
+                    detail=f"Got: {wallet.get('available_balance')}")
+        else:
+            log_test("GET /api/wallet after failed purchase", False, wallet_response.status_code, 200)
+    except Exception as e:
+        log_test("Wallet check after failed purchase", False, detail=f"Exception: {str(e)}")
+    
+    # Verify no new ledger entry created
+    print("\n3️⃣  Verifying no ledger entry created for failed purchase...")
+    try:
+        tx_response = requests.get(
+            f"{BASE_URL}/transactions",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if tx_response.status_code == 200:
+            transactions = tx_response.json()
+            
+            # Should still have 3 transactions (no new entry)
+            tx_count = len(transactions)
+            log_test("After failed purchase: transaction count unchanged (3)", tx_count == 3, 200,
+                    detail=f"Got {tx_count} transactions")
+        else:
+            log_test("GET /api/transactions after failed purchase", False, tx_response.status_code, 200)
+    except Exception as e:
+        log_test("Transactions check after failed purchase", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 SCENARIO 6: Idempotency / Double-spend prevention")
+print("-" * 80)
+
+if phase5_user_token:
+    print("\n1️⃣  Testing investment idempotency - buying silver with key 'DUP' twice...")
+    
+    # First purchase with idempotency_key "DUP"
+    try:
+        dup1_response = requests.post(
+            f"{BASE_URL}/investments",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            json={"plan_key": "silver", "idempotency_key": "DUP"},
+            timeout=10
+        )
+        
+        if dup1_response.status_code == 201:
+            dup1_data = dup1_response.json()
+            dup1_id = dup1_data.get("id")
+            log_test("First silver purchase with key 'DUP'", True, 201)
+            
+            # Second purchase with same idempotency_key "DUP"
+            dup2_response = requests.post(
+                f"{BASE_URL}/investments",
+                headers={"Authorization": f"Bearer {phase5_user_token}"},
+                json={"plan_key": "silver", "idempotency_key": "DUP"},
+                timeout=10
+            )
+            
+            if dup2_response.status_code == 201:
+                dup2_data = dup2_response.json()
+                dup2_id = dup2_data.get("id")
+                
+                # Should return same investment ID
+                same_id = dup1_id == dup2_id
+                log_test("Second purchase with 'DUP' returns same investment ID", same_id, 201,
+                        detail=f"ID1: {dup1_id}, ID2: {dup2_id}")
+            else:
+                log_test("Second silver purchase with key 'DUP'", False, dup2_response.status_code, 201)
+        else:
+            log_test("First silver purchase with key 'DUP'", False, dup1_response.status_code, 201)
+    except Exception as e:
+        log_test("Investment idempotency test", False, detail=f"Exception: {str(e)}")
+    
+    # Check wallet - should only deduct 300 once (700 -> 400)
+    print("\n2️⃣  Verifying wallet only debited once (700 -> 400)...")
+    try:
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            
+            available_correct = wallet.get("available_balance") == "400.00"
+            log_test("After duplicate investment: available_balance '400.00' (not 100)", 
+                    available_correct, 200,
+                    detail=f"Got: {wallet.get('available_balance')}")
+        else:
+            log_test("GET /api/wallet after duplicate investment", False, wallet_response.status_code, 200)
+    except Exception as e:
+        log_test("Wallet check after duplicate investment", False, detail=f"Exception: {str(e)}")
+    
+    # Check transactions - should have only ONE new INVESTMENT debit of 300
+    print("\n3️⃣  Verifying only ONE new INVESTMENT debit created...")
+    try:
+        tx_response = requests.get(
+            f"{BASE_URL}/transactions",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if tx_response.status_code == 200:
+            transactions = tx_response.json()
+            
+            # Should have 4 transactions total (not 5)
+            tx_count = len(transactions)
+            log_test("After duplicate investment: 4 ledger entries (not 5)", tx_count == 4, 200,
+                    detail=f"Got {tx_count} transactions")
+            
+            # Count INVESTMENT transactions
+            investment_txs = [t for t in transactions if t.get("type") == "INVESTMENT"]
+            log_test("Total INVESTMENT entries: 3 (not 4)", len(investment_txs) == 3, 200,
+                    detail=f"Got {len(investment_txs)} INVESTMENT entries")
+        else:
+            log_test("GET /api/transactions after duplicate investment", False, 
+                    tx_response.status_code, 200)
+    except Exception as e:
+        log_test("Transactions check after duplicate investment", False, detail=f"Exception: {str(e)}")
+
+# Test admin adjustment idempotency
+if admin_token and phase5_user_id:
+    print("\n4️⃣  Testing admin adjustment idempotency - credit 50 with key 'ADJDUP' twice...")
+    
+    try:
+        # First admin adjustment with idempotency_key "ADJDUP"
+        adj1_response = requests.post(
+            f"{BASE_URL}/admin/wallet/adjust",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={
+                "user_id": phase5_user_id,
+                "amount": "50",
+                "direction": "credit",
+                "note": "Idempotency test",
+                "idempotency_key": "ADJDUP"
+            },
+            timeout=10
+        )
+        
+        if adj1_response.status_code == 200:
+            adj1_data = adj1_response.json()
+            adj1_id = adj1_data.get("id")
+            log_test("First admin adjust with key 'ADJDUP'", True, 200)
+            
+            # Second admin adjustment with same idempotency_key "ADJDUP"
+            adj2_response = requests.post(
+                f"{BASE_URL}/admin/wallet/adjust",
+                headers={"Authorization": f"Bearer {admin_token}"},
+                json={
+                    "user_id": phase5_user_id,
+                    "amount": "50",
+                    "direction": "credit",
+                    "note": "Idempotency test duplicate",
+                    "idempotency_key": "ADJDUP"
+                },
+                timeout=10
+            )
+            
+            if adj2_response.status_code == 200:
+                adj2_data = adj2_response.json()
+                adj2_id = adj2_data.get("id")
+                
+                # Should return same transaction ID
+                same_id = adj1_id == adj2_id
+                log_test("Second admin adjust with 'ADJDUP' returns same transaction ID", 
+                        same_id, 200,
+                        detail=f"ID1: {adj1_id}, ID2: {adj2_id}")
+            else:
+                log_test("Second admin adjust with key 'ADJDUP'", False, 
+                        adj2_response.status_code, 200)
+        else:
+            log_test("First admin adjust with key 'ADJDUP'", False, adj1_response.status_code, 200)
+    except Exception as e:
+        log_test("Admin adjustment idempotency test", False, detail=f"Exception: {str(e)}")
+    
+    # Check wallet - should only credit 50 once (400 -> 450)
+    print("\n5️⃣  Verifying wallet only credited once (400 -> 450)...")
+    try:
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            
+            available_correct = wallet.get("available_balance") == "450.00"
+            log_test("After duplicate admin adjust: available_balance '450.00' (not 500)", 
+                    available_correct, 200,
+                    detail=f"Got: {wallet.get('available_balance')}")
+        else:
+            log_test("GET /api/wallet after duplicate admin adjust", False, 
+                    wallet_response.status_code, 200)
+    except Exception as e:
+        log_test("Wallet check after duplicate admin adjust", False, detail=f"Exception: {str(e)}")
+    
+    # Check transactions - should have only ONE new ADMIN_ADJUSTMENT credit
+    print("\n6️⃣  Verifying only ONE new ADMIN_ADJUSTMENT credit created...")
+    try:
+        tx_response = requests.get(
+            f"{BASE_URL}/transactions",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if tx_response.status_code == 200:
+            transactions = tx_response.json()
+            
+            # Should have 5 transactions total (not 6)
+            tx_count = len(transactions)
+            log_test("After duplicate admin adjust: 5 ledger entries (not 6)", tx_count == 5, 200,
+                    detail=f"Got {tx_count} transactions")
+            
+            # Count ADMIN_ADJUSTMENT transactions
+            admin_txs = [t for t in transactions if t.get("type") == "ADMIN_ADJUSTMENT"]
+            log_test("Total ADMIN_ADJUSTMENT entries: 2 (not 3)", len(admin_txs) == 2, 200,
+                    detail=f"Got {len(admin_txs)} ADMIN_ADJUSTMENT entries")
+        else:
+            log_test("GET /api/transactions after duplicate admin adjust", False, 
+                    tx_response.status_code, 200)
+    except Exception as e:
+        log_test("Transactions check after duplicate admin adjust", False, 
+                detail=f"Exception: {str(e)}")
+
+print("\n📋 SCENARIO 7: Final consistency check")
+print("-" * 80)
+
+if phase5_user_token:
+    print("\n1️⃣  Final consistency check after all operations...")
+    try:
+        consistency_response = requests.get(
+            f"{BASE_URL}/wallet/consistency",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if consistency_response.status_code == 200:
+            consistency = consistency_response.json()
+            
+            is_consistent = consistency.get("consistent") == True
+            available_matches = consistency.get("available_balance") == "450.00"
+            ledger_matches = consistency.get("ledger_balance") == "450.00"
+            balances_equal = consistency.get("available_balance") == consistency.get("ledger_balance")
+            
+            log_test("Final consistency: consistent=true", is_consistent, 200,
+                    detail=f"Got: {consistency}")
+            log_test("Final consistency: available_balance '450.00'", available_matches, 200,
+                    detail=f"Got: {consistency.get('available_balance')}")
+            log_test("Final consistency: ledger_balance '450.00'", ledger_matches, 200,
+                    detail=f"Got: {consistency.get('ledger_balance')}")
+            log_test("Final consistency: available_balance == ledger_balance", balances_equal, 200)
+        else:
+            log_test("Final GET /api/wallet/consistency", False, consistency_response.status_code, 200)
+    except Exception as e:
+        log_test("Final consistency check", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 SCENARIO 8: Canonical ledger types validation")
+print("-" * 80)
+
+if phase5_user_token:
+    print("\n1️⃣  Verifying all ledger entries use canonical types...")
+    try:
+        tx_response = requests.get(
+            f"{BASE_URL}/transactions",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            timeout=10
+        )
+        
+        if tx_response.status_code == 200:
+            transactions = tx_response.json()
+            
+            # Canonical types from schema
+            canonical_types = {
+                "DEPOSIT", "INVESTMENT", "INVESTMENT_MATURITY", "PROFIT",
+                "REFERRAL_COMMISSION", "WITHDRAWAL", "WITHDRAWAL_REVERSAL",
+                "REINVESTMENT", "ADMIN_ADJUSTMENT", "REFUND"
+            }
+            
+            invalid_types = []
+            for tx in transactions:
+                tx_type = tx.get("type")
+                if tx_type not in canonical_types:
+                    invalid_types.append(tx_type)
+            
+            all_canonical = len(invalid_types) == 0
+            log_test("All ledger entries use canonical types", all_canonical, 200,
+                    detail=f"Invalid types found: {invalid_types}" if invalid_types else "All valid")
+            
+            # List types used
+            types_used = set(tx.get("type") for tx in transactions)
+            log_test(f"Ledger types used: {types_used}", True, 200)
+        else:
+            log_test("GET /api/transactions for type validation", False, 
+                    tx_response.status_code, 200)
+    except Exception as e:
+        log_test("Canonical types validation", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 SCENARIO 9: Auth checks")
+print("-" * 80)
+
+print("\n1️⃣  Testing endpoints without token (should return 401)...")
+
+# Test wallet endpoint without token
+try:
+    no_auth_response = requests.get(f"{BASE_URL}/wallet", timeout=10)
+    log_test("GET /api/wallet without token returns 401", 
+            no_auth_response.status_code == 401, no_auth_response.status_code, 401)
+except Exception as e:
+    log_test("GET /api/wallet without token", False, detail=f"Exception: {str(e)}")
+
+# Test consistency endpoint without token
+try:
+    no_auth_response = requests.get(f"{BASE_URL}/wallet/consistency", timeout=10)
+    log_test("GET /api/wallet/consistency without token returns 401", 
+            no_auth_response.status_code == 401, no_auth_response.status_code, 401)
+except Exception as e:
+    log_test("GET /api/wallet/consistency without token", False, detail=f"Exception: {str(e)}")
+
+# Test transactions endpoint without token
+try:
+    no_auth_response = requests.get(f"{BASE_URL}/transactions", timeout=10)
+    log_test("GET /api/transactions without token returns 401", 
+            no_auth_response.status_code == 401, no_auth_response.status_code, 401)
+except Exception as e:
+    log_test("GET /api/transactions without token", False, detail=f"Exception: {str(e)}")
+
+# Test admin adjust endpoint without token
+try:
+    no_auth_response = requests.post(
+        f"{BASE_URL}/admin/wallet/adjust",
+        json={"user_id": "test", "amount": "100", "direction": "credit"},
+        timeout=10
+    )
+    log_test("POST /api/admin/wallet/adjust without token returns 401", 
+            no_auth_response.status_code == 401, no_auth_response.status_code, 401)
+except Exception as e:
+    log_test("POST /api/admin/wallet/adjust without token", False, detail=f"Exception: {str(e)}")
+
+print("\n2️⃣  Testing admin endpoint with normal user token (should return 403)...")
+
+if phase5_user_token and phase5_user_id:
+    try:
+        forbidden_response = requests.post(
+            f"{BASE_URL}/admin/wallet/adjust",
+            headers={"Authorization": f"Bearer {phase5_user_token}"},
+            json={
+                "user_id": phase5_user_id,
+                "amount": "100",
+                "direction": "credit"
+            },
+            timeout=10
+        )
+        log_test("Normal user calling admin endpoint returns 403", 
+                forbidden_response.status_code == 403, forbidden_response.status_code, 403)
+    except Exception as e:
+        log_test("Normal user calling admin endpoint", False, detail=f"Exception: {str(e)}")
+
 # Final summary
 print("\n" + "=" * 80)
 print("\n📊 TEST SUMMARY")

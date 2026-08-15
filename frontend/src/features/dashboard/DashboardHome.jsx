@@ -13,7 +13,7 @@ export default function DashboardHome() {
     return <EasyXEmptyState icon={WalletIcon} title="Could not load your dashboard" note="Please refresh the page." />;
   }
 
-  const { user, wallet, plans, totals } = data;
+  const { user, wallet, plans } = data;
 
   return (
     <div data-testid="dashboard-home">
@@ -29,11 +29,11 @@ export default function DashboardHome() {
         </p>
       </div>
 
-      {/* Summary stats */}
+      {/* Three balances: Available, Locked Investment, Total Portfolio */}
       <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div data-testid="summary-wallet"><EasyXStat label="Wallet balance" value={money(wallet.available_balance)} icon={WalletIcon} gradient /></div>
-        <EasyXStat label="Active investments" value={totals.active_investments} icon={Layers} />
-        <EasyXStat label="Total invested" value={money(wallet.total_invested)} icon={TrendingUp} />
+        <div data-testid="summary-wallet"><EasyXStat label="Available balance" value={money(wallet.available_balance)} icon={WalletIcon} gradient /></div>
+        <EasyXStat label="Locked investment" value={money(wallet.locked_investment)} icon={Layers} />
+        <EasyXStat label="Total portfolio" value={money(wallet.total_portfolio)} icon={TrendingUp} gradient />
       </div>
 
       {/* Plan cards — same 3D certificate carousel as the landing page */}

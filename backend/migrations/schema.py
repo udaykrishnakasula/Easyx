@@ -119,9 +119,9 @@ COLLECTIONS = {
             {
                 "id": S, "wallet_id": S, "user_id": S,
                 "type": _enum([
-                    "deposit_credit", "investment_debit", "maturity_principal",
-                    "maturity_profit", "referral_commission", "withdrawal_debit",
-                    "withdrawal_reversal", "adjustment_credit", "adjustment_debit",
+                    "DEPOSIT", "INVESTMENT", "INVESTMENT_MATURITY", "PROFIT",
+                    "REFERRAL_COMMISSION", "WITHDRAWAL", "WITHDRAWAL_REVERSAL",
+                    "REINVESTMENT", "ADMIN_ADJUSTMENT", "REFUND",
                 ]),
                 "direction": _enum(["credit", "debit"]),
                 "amount": DEC, "balance_after": DEC,

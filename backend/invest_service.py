@@ -123,7 +123,7 @@ async def buy_plan(user: dict, plan_key: str, idempotency_key: str | None = None
     # Debit wallet (atomic, idempotent). Roll back the pending investment on failure.
     try:
         await wallet_service.debit(
-            user_id, principal, tx_type="investment_debit",
+            user_id, principal, tx_type="INVESTMENT",
             ref_type="investment", ref_id=inv_id,
             idempotency_key=f"invest-debit:{inv_id}",
             note=f"Investment in {plan['name']} plan",
@@ -198,14 +198,14 @@ async def get_plans_state(user_id: str):
 
 
 async def get_dashboard(user: dict):
-    wallet = await wallet_service.get_or_create_wallet(user["id"])
+    wallet = await wallet_service.wallet_summary(user["id"])
     plans = await get_plans_state(user["id"])
     total_active = sum(p["active_investments"] for p in plans)
     total_cards = sum(p["cards"] for p in plans)
     return {
         "user": {"id": user["id"], "name": user["name"], "email": user["email"],
                  "referral_code": user.get("referral_code"), "kyc_status": user.get("kyc_status", "none")},
-        "wallet": wallet_service.serialize_wallet(wallet),
+        "wallet": wallet,
         "plans": plans,
         "totals": {"active_investments": total_active, "total_cards": total_cards},
     }

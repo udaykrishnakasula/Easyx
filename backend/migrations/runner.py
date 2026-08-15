@@ -5,6 +5,7 @@ import logging
 
 from . import schema as m0001_schema
 from . import seed as m0002_seed
+from . import ledger_types as m0003_ledger_types
 from .helpers import now_iso
 
 logger = logging.getLogger("migrations")
@@ -13,6 +14,7 @@ logger = logging.getLogger("migrations")
 MIGRATIONS = [
     (1, "initial_schema", m0001_schema),
     (2, "seed_data", m0002_seed),
+    (3, "canonical_ledger_types", m0003_ledger_types),
 ]
 
 

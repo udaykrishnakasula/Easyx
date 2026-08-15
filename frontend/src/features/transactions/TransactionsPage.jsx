@@ -19,7 +19,7 @@ export default function TransactionsPage() {
           <EasyXTable columns={["Type", "Amount", "Balance after", "Status", "Date"]}>
             {data.map((t) => (
               <tr key={t.id}>
-                <td className="px-4 py-3 capitalize text-ex-text">{t.type.replace(/_/g, " ")}</td>
+                <td className="px-4 py-3 capitalize text-ex-text">{t.type.replace(/_/g, " ").toLowerCase()}</td>
                 <td className={`px-4 py-3 font-semibold ${t.direction === "credit" ? "text-emerald-300" : "text-red-300"}`}>
                   {t.direction === "credit" ? "+" : "-"}{money(t.amount)}
                 </td>

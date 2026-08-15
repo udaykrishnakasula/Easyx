@@ -30,7 +30,7 @@ async def adjust_wallet(payload: AdjustIn, admin: dict = Depends(require_admin))
     if not target:
         return {"error": "user_not_found"}
     key = payload.idempotency_key or f"adjust:{uuid.uuid4()}"
-    tx_type = "adjustment_credit" if payload.direction == "credit" else "adjustment_debit"
+    tx_type = "ADMIN_ADJUSTMENT"
     fn = wallet_service.credit if payload.direction == "credit" else wallet_service.debit
     tx = await fn(
         payload.user_id, payload.amount, tx_type=tx_type,

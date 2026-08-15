@@ -158,6 +158,50 @@ def serialize_wallet(w: dict) -> dict:
     }
 
 
+async def compute_locked(user_id: str):
+    """Money currently inside ACTIVE investments (sum of active principals)."""
+    total = to_dec(0)
+    async for inv in db.investments.find(
+        {"user_id": user_id, "status": "active"}, {"principal": 1}
+    ):
+        total += to_dec(inv["principal"])
+    return total
+
+
+async def wallet_summary(user_id: str) -> dict:
+    """Three balances: Available, Locked Investment, Total Portfolio."""
+    w = await get_or_create_wallet(user_id)
+    available = to_dec(w["available_balance"])
+    locked = await compute_locked(user_id)
+    return {
+        "currency": w.get("currency", "USDT"),
+        "available_balance": fmt(available),
+        "locked_investment": fmt(locked),
+        "total_portfolio": fmt(available + locked),
+        "total_invested": fmt(w.get("total_invested", 0)),
+        "total_earned": fmt(w.get("total_earned", 0)),
+    }
+
+
+async def check_consistency(user_id: str) -> dict:
+    """Assert available_balance == sum(ledger credits) - sum(ledger debits).
+    Every available-balance change is ledgered, so these must match exactly."""
+    w = await get_or_create_wallet(user_id)
+    ledger = to_dec(0)
+    async for t in db.wallet_transactions.find(
+        {"user_id": user_id, "status": "completed"}, {"amount": 1, "direction": 1}
+    ):
+        amt = to_dec(t["amount"])
+        ledger += amt if t["direction"] == "credit" else -amt
+    available = to_dec(w["available_balance"])
+    return {
+        "user_id": user_id,
+        "available_balance": fmt(available),
+        "ledger_balance": fmt(ledger),
+        "consistent": available == ledger,
+    }
+
+
 def serialize_tx(t: dict) -> dict:
     return {
         "id": t["id"], "type": t["type"], "direction": t["direction"],

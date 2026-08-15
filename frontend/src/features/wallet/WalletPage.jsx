@@ -21,9 +21,16 @@ export default function WalletPage() {
             style={{ background: "radial-gradient(120% 140% at 100% 0%, rgba(150,128,220,0.28) 0%, rgba(23,22,29,0) 60%), linear-gradient(160deg,#17161d,#0c0c0f)" }}>
             <div className="text-ex-muted text-xs">Available balance</div>
             <div className="mt-1 ex-display text-3xl font-extrabold ex-gradient-text" data-testid="wallet-balance">{money(wallet.available_balance)}</div>
-            <div className="text-xs text-ex-muted">{wallet.currency}</div>
+            <div className="text-xs text-ex-muted">For purchases & withdrawals</div>
           </div>
-          <EasyXStat label="Total invested" value={money(wallet.total_invested)} />
+          <EasyXStat label="Locked investment" value={money(wallet.locked_investment)} />
+          <EasyXStat label="Total portfolio" value={money(wallet.total_portfolio)} gradient />
+        </div>
+      )}
+
+      {wallet && (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:gap-4 max-w-md">
+          <EasyXStat label="Total invested (lifetime)" value={money(wallet.total_invested)} />
           <EasyXStat label="Total earned" value={money(wallet.total_earned)} accent />
         </div>
       )}
@@ -41,7 +48,7 @@ export default function WalletPage() {
                     {t.direction === "credit" ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
                   </span>
                   <div>
-                    <div className="text-sm font-medium capitalize text-ex-text">{t.type.replace(/_/g, " ")}</div>
+                    <div className="text-sm font-medium capitalize text-ex-text">{t.type.replace(/_/g, " ").toLowerCase()}</div>
                     <div className="text-[11px] text-ex-muted">{dayjs(t.created_at).format("DD MMM YYYY, HH:mm")}</div>
                   </div>
                 </div>
