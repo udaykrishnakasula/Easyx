@@ -25,9 +25,6 @@ export default function Hero() {
           <span className="nav__mark"><EasyxMark /></span>
           <span className="nav__name">Easyx</span>
         </a>
-        <button className="btn-pill nav__cta" data-testid="nav-open-wallet-btn">
-          Open Wallet
-        </button>
       </nav>
 
       {/* 3D coins — dominant foreground, same composition on every size */}
