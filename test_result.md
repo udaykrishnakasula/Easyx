@@ -186,18 +186,78 @@ frontend:
 metadata:
   created_by: "testing_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: true
 
+backend:
+  - task: "Auth - register (POST /api/auth/register)"
+    implemented: true
+    working: true
+    file: "/app/backend/auth_router.py, /app/backend/auth_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "New endpoint. Registers user with name/email/phone/password/optional referral_code. Returns JWT access_token + user. Enforces unique email & phone (409), invalid referral code (400). Password >=8. bcrypt hashing. Manually verified register returns a token."
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL TESTS PASSED (6/6): (1) Success 201 - returns access_token, token_type='bearer', user with all required fields (id, name, email, phone, role='user', email_verified, kyc_status='none', referral_code, referred_by=null, status='active', created_at). Verified password_hash NOT present in response. (2) Duplicate email -> 409 ✅. (3) Duplicate phone -> 409 ✅. (4) Invalid referral code -> 400 ✅. (5) Short password (<8 chars) -> 422 Pydantic validation ✅. (6) Referral flow: registered user A, captured referral_code, registered user B with A's referral_code -> B.referred_by == A.id ✅. All status codes, response structures, and business logic working correctly."
+
+  - task: "Auth - login (POST /api/auth/login)"
+    implemented: true
+    working: true
+    file: "/app/backend/auth_router.py, /app/backend/auth_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Authenticates by email+password, returns JWT + user. Invalid creds -> 401. Banned -> 403. Email verification gate currently disabled (REQUIRE_EMAIL_VERIFICATION=false)."
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL TESTS PASSED (3/3): (1) Success 200 - returns access_token and user object ✅. (2) Wrong password -> 401 ✅. (3) Non-existent email -> 401 ✅. All authentication flows working correctly with proper error handling."
+
+  - task: "Auth - current user (GET /api/auth/me)"
+    implemented: true
+    working: true
+    file: "/app/backend/auth_router.py, /app/backend/deps.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Bearer-protected. Returns current user; missing/invalid token -> 401. password_hash never returned."
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL TESTS PASSED (3/3): (1) Valid Bearer token -> 200 returns user with id, email, and all fields. Verified password_hash NOT present in response ✅. (2) Missing token (no Authorization header) -> 401 ✅. (3) Invalid/garbage token -> 401 ✅. Token validation and user retrieval working correctly."
+
+  - task: "Auth - admin seed & role gating"
+    implemented: true
+    working: true
+    file: "/app/backend/auth_service.py, /app/backend/deps.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Single admin seeded on startup (admin@easyx.com / Admin@Easyx2026, role=admin). require_admin dependency returns 403 for non-admins. Verify admin login returns role=admin and that users cannot reach admin-only deps."
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL TESTS PASSED (2/2): (1) Admin login with admin@easyx.com / Admin@Easyx2026 -> 200 returns user.role='admin' ✅. (2) Normal user token -> /me returns user.role='user' ✅. Admin seeding and role differentiation working correctly."
+
 test_plan:
-  current_focus:
-    - "Investment card carousel - back-side content overflow/clipping"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+    - agent: "main"
+      message: "PHASE 1 (Auth foundation) implemented. Please test backend auth ONLY: POST /api/auth/register (success + duplicate email 409 + duplicate phone 409 + invalid referral_code 400 + short password 422), POST /api/auth/login (success + wrong password 401 + non-existent user 401), GET /api/auth/me (valid bearer 200 returns user without password_hash; no/invalid token 401). Admin: login with admin@easyx.com / Admin@Easyx2026 returns user.role=='admin'. Confirm valid referral flow: register user A, then register user B with A's referral_code -> B.referred_by == A.id (200/201). All amounts/financial logic are NOT part of this phase. Do NOT test frontend. Base URL uses REACT_APP_BACKEND_URL + /api."
     - agent: "testing"
-      message: "Completed comprehensive testing of the Halo investment card carousel. CRITICAL ISSUE FOUND: Back-side content is cut off on all cards due to vertical overflow. The card's aspect-[42/26] ratio creates a fixed height container, but the back-side content (certificate view) requires more vertical space. Content is clipped by ~22-24px on desktop and ~21-24px on mobile, cutting off the bottom signature, seal, and footer elements. All other tests passed: carousel order correct, return values correct, dates properly masked as 'XX XX 2026', investment IDs intact, and visual distinction between Diamond and Silver is clear. The overflow issue is the main bug that needs to be fixed - likely requires adjusting the back-side content layout, reducing padding, decreasing font sizes, or adjusting the card aspect ratio to accommodate all certificate elements."
-    - agent: "testing"
-      message: "RE-TEST COMPLETE after padding fix (p-4 → p-3). DESKTOP: ✅ FIXED - All cards now have 0px overflow, content fits perfectly. Visual verification shows signature, seal, and all footer elements fully visible. MOBILE: ❌ STILL FAILING - All cards have 32px overflow (scrollHeight 230px vs clientHeight 198px). Bottom content still clipped on mobile. The padding reduction fixed desktop but mobile needs more aggressive space optimization. Recommend: (1) Use responsive padding (p-3 on desktop, p-2 on mobile), OR (2) Reduce font sizes on mobile, OR (3) Tighten vertical spacing (reduce pt-1.5 to pt-1, reduce gaps). Date masking and investment IDs working correctly on both viewports."
+      message: "✅ PHASE 1 AUTH BACKEND TESTING COMPLETE - ALL 14 TESTS PASSED (100% success rate). Created comprehensive test suite in /app/backend_test.py. Tested all 4 auth endpoints with all required scenarios: (1) POST /api/auth/register - 6 tests: success 201, duplicate email 409, duplicate phone 409, invalid referral 400, short password 422, referral flow B.referred_by==A.id. (2) POST /api/auth/login - 3 tests: success 200, wrong password 401, non-existent email 401. (3) GET /api/auth/me - 3 tests: valid token 200, missing token 401, invalid token 401. (4) Admin & role gating - 2 tests: admin login role='admin', normal user role='user'. All status codes correct, response structures valid, password_hash never exposed, referral logic working. No issues found. Backend auth foundation is solid and ready for next phase."

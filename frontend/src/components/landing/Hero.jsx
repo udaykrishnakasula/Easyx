@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Coin from "./Coin";
 
 const EasyxMark = () => (
@@ -15,6 +16,7 @@ const EasyxMark = () => (
 const partners = ["Aave", "Compound", "MakerDAO", "Chainlink", "Curve"];
 
 export default function Hero() {
+  const navigate = useNavigate();
   return (
     <section className="hero font-body" data-testid="hero-section">
       <div className="hero__bg" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/assets/hero_bg.jpg)` }} />
@@ -60,6 +62,7 @@ export default function Hero() {
           <motion.button
             className="btn-pill hero__cta"
             data-testid="hero-join-btn"
+            onClick={() => navigate("/register")}
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3, ease: [0.2, 0.8, 0.2, 1] }}

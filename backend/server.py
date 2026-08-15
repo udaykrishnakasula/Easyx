@@ -14,10 +14,10 @@ from datetime import datetime, timezone
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# MongoDB connection (shared single client)
+from db import client, db  # noqa: E402
+import auth_service  # noqa: E402
+from auth_router import router as auth_router  # noqa: E402
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -68,6 +68,14 @@ async def get_status_checks():
 
 # Include the router in the main app
 app.include_router(api_router)
+app.include_router(auth_router)
+
+
+@app.on_event("startup")
+async def _startup():
+    await auth_service.ensure_indexes()
+    await auth_service.seed_admin()
+    logging.getLogger(__name__).info("Startup complete: indexes ensured, admin seeded.")
 
 app.add_middleware(
     CORSMiddleware,
