@@ -1,17 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
-import Autoplay from "embla-carousel-autoplay";
 import { Sparkles, Repeat, ShieldCheck, Layers, ArrowRight } from "lucide-react";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
-} from "@/components/ui/carousel";
-import { InvestmentCard } from "@/components/landing/DiamondInvestmentCard";
-
-const cardVariants = ["silver", "gold", "diamond", "platinum"];
+import CardCarousel from "@/components/landing/CardCarousel";
 
 const features = [
   { icon: Sparkles, title: "Native yield", body: "Rewards accrue automatically to your balance — no staking, no lockups, no manual claims." },
@@ -45,30 +35,7 @@ export default function Sections() {
           </motion.h2>
 
           <motion.div className="halo-carousel" data-testid="halo-carousel" {...fade}>
-            <Carousel
-              opts={{ align: "center", loop: true, watchDrag: false }}
-              plugins={[
-                Autoplay({
-                  delay: 2000,
-                }),
-              ]}
-            >
-              <CarouselContent className="py-12">
-                {cardVariants.map((variant) => (
-                  <CarouselItem
-                    key={variant}
-                    data-testid={`carousel-card-${variant}`}
-                    className="basis-auto shrink-0 grow-0 flex justify-center px-6"
-                  >
-                    <div className="w-[420px] max-w-[82vw]">
-                      <InvestmentCard variant={variant} className="mx-auto" />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
+            <CardCarousel />
           </motion.div>
           <div className="feat-grid">
             {features.map((f, i) => (
