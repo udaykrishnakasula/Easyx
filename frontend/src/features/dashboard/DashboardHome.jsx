@@ -2,7 +2,7 @@ import React from "react";
 import { Wallet as WalletIcon, TrendingUp, Layers } from "lucide-react";
 
 import { useDashboard, money } from "./api";
-import PlanCard from "./PlanCard";
+import DashboardPlanCarousel from "./DashboardPlanCarousel";
 import { EasyXStat, Eyebrow, EasyXLoader, EasyXEmptyState } from "@/design/EasyX";
 
 export default function DashboardHome() {
@@ -36,7 +36,7 @@ export default function DashboardHome() {
         <EasyXStat label="Total invested" value={money(wallet.total_invested)} icon={TrendingUp} />
       </div>
 
-      {/* Plan cards */}
+      {/* Plan cards — same 3D certificate carousel as the landing page */}
       <div className="mt-9 flex items-end justify-between">
         <div>
           <Eyebrow>Investment plans</Eyebrow>
@@ -44,11 +44,7 @@ export default function DashboardHome() {
         </div>
         <span className="text-xs text-ex-muted">1 card = 1 investment</span>
       </div>
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {plans.map((p) => (
-          <PlanCard key={p.key} plan={p} userName={user.name} walletBalance={wallet.available_balance} />
-        ))}
-      </div>
+      <DashboardPlanCarousel plans={plans} walletBalance={wallet.available_balance} userName={user.name} />
     </div>
   );
 }
