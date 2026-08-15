@@ -7,11 +7,11 @@ const features = [
   { icon: Sparkles, title: "Native yield", body: "Rewards accrue automatically to your balance — no staking, no lockups, no manual claims." },
   { icon: Repeat, title: "Auto-compounding", body: "Earnings reinvest continuously so your digital dollars keep working around the clock." },
   { icon: Layers, title: "DeFi-connected", body: "One tap to route liquidity into Aave, Compound and the protocols you already trust." },
-  { icon: ShieldCheck, title: "Fully backed", body: "Every Halo dollar is collateralized and independently attested for total peace of mind." },
+  { icon: ShieldCheck, title: "Fully backed", body: "Every Easyx dollar is collateralized and independently attested for total peace of mind." },
 ];
 
 const stats = [
-  { num: "$1.4B+", label: "Value settled on Halo" },
+  { num: "$1.4B+", label: "Value settled on Easyx" },
   { num: "6.8%", label: "Average blended APY" },
   { num: "40+", label: "Integrated protocols" },
   { num: "120k", label: "Wallets earning daily" },
@@ -29,12 +29,12 @@ export default function Sections() {
     <>
       <section className="section sec-dark" data-testid="section-features">
         <div className="wrap">
-          <motion.p className="eyebrow" {...fade}>What Halo does</motion.p>
+          <motion.p className="eyebrow" {...fade}>What Easyx does</motion.p>
           <motion.h2 className="sec-title" {...fade}>
             A digital dollar that<br />earns on its own.
           </motion.h2>
 
-          <motion.div className="halo-carousel" data-testid="halo-carousel" {...fade}>
+          <motion.div className="easyx-carousel" data-testid="easyx-carousel" {...fade}>
             <CardCarousel />
           </motion.div>
           <div className="feat-grid">
@@ -84,7 +84,7 @@ export default function Sections() {
               Put your wealth to work.
             </h2>
             <p className="font-body" style={{ color: "#a7a1b8", maxWidth: "42ch", margin: "18px auto 30px", fontSize: "1.15rem", lineHeight: 1.5 }}>
-              Open a Halo wallet in seconds and start earning native, reward-powered yield today.
+              Open a Easyx wallet in seconds and start earning native, reward-powered yield today.
             </p>
             <button className="btn-pill hero__cta" data-testid="cta-band-btn" style={{ margin: "0 auto" }}>
               Join us
@@ -96,8 +96,8 @@ export default function Sections() {
 
       <footer className="footer font-body" data-testid="footer">
         <div className="footer__row">
-          <span style={{ fontFamily: "Bricolage Grotesque, sans-serif", fontWeight: 700, fontSize: "1.4rem", color: "#efecf6" }}>Halo</span>
-          <span>© {new Date().getFullYear()} Halo Finance. All rights reserved.</span>
+          <span style={{ fontFamily: "Bricolage Grotesque, sans-serif", fontWeight: 700, fontSize: "1.4rem", color: "#efecf6" }}>Easyx</span>
+          <span>© {new Date().getFullYear()} Easyx Finance. All rights reserved.</span>
         </div>
       </footer>
     </>

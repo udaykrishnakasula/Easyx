@@ -1,4 +1,4 @@
-/* ============ Halo landing ============ */
+/* ============ Easyx landing ============ */
 :root {
   --ink: #0c0c0f;
   --ink-soft: #4a4657;
@@ -407,11 +407,11 @@ body {
   gap: clamp(18px, 2vw, 28px);
   margin-top: clamp(40px, 6vw, 72px);
 }
-.halo-carousel {
+.easyx-carousel {
   margin-top: clamp(32px, 4vw, 52px);
   padding: 0 clamp(12px, 3vw, 44px);
 }
-.halo-carousel__slide {
+.easyx-carousel__slide {
   display: flex;
   align-items: center;
   justify-content: center;

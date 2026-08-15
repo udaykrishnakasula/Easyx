@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Coin from "./Coin";
 
-const HaloMark = () => (
+const EasyxMark = () => (
   <svg width="60%" height="60%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 5v14" />
     <path d="M20 5v14" />
@@ -22,8 +22,8 @@ export default function Hero() {
       {/* Navbar overlays the hero */}
       <nav className="nav" data-testid="hero-navbar">
         <a href="#" className="nav__brand" data-testid="nav-brand">
-          <span className="nav__mark"><HaloMark /></span>
-          <span className="nav__name">Halo</span>
+          <span className="nav__mark"><EasyxMark /></span>
+          <span className="nav__name">Easyx</span>
         </a>
         <button className="btn-pill nav__cta" data-testid="nav-open-wallet-btn">
           Open Wallet
