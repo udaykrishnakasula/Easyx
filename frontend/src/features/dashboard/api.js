@@ -95,6 +95,7 @@ export function useNotifications(unreadOnly = false) {
     queryKey: ["notifications", unreadOnly ? "unread" : "all"],
     queryFn: async () =>
       (await api.get("/notifications", { params: unreadOnly ? { unread_only: true } : {} })).data,
+    refetchInterval: 30000,
   });
 }
 
@@ -102,7 +103,8 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: ["notifications-unread-count"],
     queryFn: async () => (await api.get("/notifications/unread-count")).data.count,
-    refetchInterval: 60000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: true,
   });
 }
 

@@ -98,6 +98,12 @@ async def create(user: dict, network: str, amount, to_address: str) -> dict:
         await db.withdrawals.delete_one({"id": wid})
         raise
 
+    await notify_service.create(
+        user["id"], ntype="withdrawal_submitted",
+        title="Withdrawal submitted",
+        body=f"Your {network} withdrawal request of {fmt(amt)} USDT was submitted and is pending admin approval.",
+        dedupe_key=f"withdrawal-submitted:{wid}",
+    )
     return serialize(doc)
 
 

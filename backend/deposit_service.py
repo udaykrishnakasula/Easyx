@@ -116,6 +116,12 @@ async def create_deposit(user_id: str, network: str, amount, tx_hash: str) -> di
             "code": "duplicate_tx_hash",
             "message": "This transaction hash has already been submitted.",
         })
+    await notify_service.create(
+        user_id, ntype="deposit_submitted",
+        title="Deposit submitted",
+        body=f"Your {network} deposit of {fmt(doc['amount'])} USDT was submitted and is pending admin approval.",
+        dedupe_key=f"deposit-submitted:{doc['id']}",
+    )
     return serialize_deposit(doc)
 
 

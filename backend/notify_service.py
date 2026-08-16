@@ -57,6 +57,7 @@ def serialize(n: dict) -> dict:
         "is_read": bool(n.get("is_read", False)),
         "investment_id": n.get("investment_id"),
         "created_at": n.get("created_at"),
+        "read_at": n.get("read_at"),
     }
 
 

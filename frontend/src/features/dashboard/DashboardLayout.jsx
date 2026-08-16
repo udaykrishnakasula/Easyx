@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/context/AuthContext";
 import { useUnreadCount } from "@/features/dashboard/api";
+import NotificationBell from "@/features/notifications/NotificationBell";
 
 const NAV = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -114,12 +115,22 @@ export default function DashboardLayout() {
           </SheetContent>
         </Sheet>
         <Brand />
-        <div className="h-9 w-9 rounded-full bg-white/10 grid place-items-center text-xs font-semibold ring-1 ring-white/10">
-          {(user?.name || "U").charAt(0).toUpperCase()}
+        <div className="flex items-center gap-1.5">
+          <NotificationBell />
+          <div className="h-9 w-9 rounded-full bg-white/10 grid place-items-center text-xs font-semibold ring-1 ring-white/10">
+            {(user?.name || "U").charAt(0).toUpperCase()}
+          </div>
         </div>
       </header>
 
       <main className="relative z-10 lg:pl-64">
+        {/* Desktop top bar with notification bell (mobile has its own header) */}
+        <div className="hidden lg:flex sticky top-0 z-20 items-center justify-end gap-3 border-b border-white/8 bg-ex-ink/60 px-6 py-3 backdrop-blur-xl">
+          <NotificationBell />
+          <div className="h-9 w-9 rounded-full bg-white/10 grid place-items-center text-xs font-semibold ring-1 ring-white/10">
+            {(user?.name || "U").charAt(0).toUpperCase()}
+          </div>
+        </div>
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-9">
           <Outlet />
         </div>

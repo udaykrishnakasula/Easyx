@@ -163,6 +163,12 @@ async def submit(user_id: str, id_type: str, id_number: str | None,
             "created_at": ts,
         })
 
+    await notify_service.create(
+        user_id=user_id, ntype="kyc_submitted",
+        title="KYC submitted",
+        body="Your identity verification was submitted and is pending review.",
+        dedupe_key=f"kyc_submitted:{record_id}:{ts}",
+    )
     return await get_status(user_id)
 
 

@@ -161,6 +161,17 @@ async def buy_plan(user: dict, plan_key: str, idempotency_key: str | None = None
     # investment. Best-effort & idempotent; never blocks/fails the purchase.
     await referral_service.pay_for_investment(inv_doc)
 
+    import notify_service
+    await notify_service.create(
+        user["id"], ntype="investment_purchased",
+        title="Investment purchased",
+        body=(f"You invested in the {plan['name']} plan. It matures on "
+              f"{maturity_dt.date().isoformat()} with an expected payout of "
+              f"{fmt(inv_doc.get('maturity_amount', 0))} USDT."),
+        dedupe_key=f"invest-purchased:{inv_id}",
+        investment_id=inv_id,
+    )
+
     return serialize_investment(inv_doc)
 
 
