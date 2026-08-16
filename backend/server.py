@@ -21,6 +21,7 @@ import maturity_service  # noqa: E402
 from auth_router import router as auth_router  # noqa: E402
 from user_router import router as user_router  # noqa: E402
 from admin_router import router as admin_router  # noqa: E402
+from kyc_router import router as kyc_router  # noqa: E402
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -74,6 +75,7 @@ app.include_router(api_router)
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(admin_router)
+app.include_router(kyc_router)
 
 
 @app.on_event("startup")

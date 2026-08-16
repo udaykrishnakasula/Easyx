@@ -15,6 +15,7 @@ import invest_service
 import deposit_service
 import maturity_service
 import wallet_service
+import kyc_service
 from db import db
 from deps import require_admin
 
@@ -127,3 +128,36 @@ async def admin_get_deposit_settings(admin: dict = Depends(require_admin)):
 @router.put("/settings/deposit")
 async def admin_set_deposit_settings(payload: DepositAddressesIn, admin: dict = Depends(require_admin)):
     return await deposit_service.set_deposit_addresses(payload.trc20, payload.bep20, admin["id"])
+
+
+# --------------------------- KYC (manual review) ---------------------------
+
+class RejectKycIn(BaseModel):
+    reason: str = Field(min_length=3, max_length=300)
+
+
+@router.get("/kyc")
+async def admin_list_kyc(status: Optional[str] = None, admin: dict = Depends(require_admin)):
+    return await kyc_service.admin_list(status)
+
+
+@router.post("/kyc/{record_id}/approve")
+async def admin_approve_kyc(record_id: str, admin: dict = Depends(require_admin)):
+    return await kyc_service.admin_approve(record_id, admin["id"])
+
+
+@router.post("/kyc/{record_id}/reject")
+async def admin_reject_kyc(record_id: str, payload: RejectKycIn, admin: dict = Depends(require_admin)):
+    return await kyc_service.admin_reject(record_id, admin["id"], payload.reason)
+
+
+@router.get("/kyc/documents/{doc_id}")
+async def admin_get_kyc_document(doc_id: str, admin: dict = Depends(require_admin)):
+    from fastapi.responses import Response
+    doc = await kyc_service.get_document_for(admin, doc_id)
+    return Response(
+        content=bytes(doc["data"]),
+        media_type=doc.get("mime") or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="kyc-{doc["doc_type"]}"',
+                 "Cache-Control": "no-store, private"},
+    )

@@ -46,3 +46,34 @@ export function useSaveDepositAddresses() {
     },
   });
 }
+
+export function useAdminKyc(status) {
+  return useQuery({
+    queryKey: ["admin-kyc", status || "all"],
+    queryFn: async () =>
+      (await api.get("/admin/kyc", { params: status ? { status } : {} })).data,
+    refetchInterval: 30000,
+  });
+}
+
+export function useApproveKyc() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }) => (await api.post(`/admin/kyc/${id}/approve`)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-kyc"] }),
+  });
+}
+
+export function useRejectKyc() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }) => (await api.post(`/admin/kyc/${id}/reject`, { reason })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-kyc"] }),
+  });
+}
+
+// Fetch a protected KYC document as an object URL (admin-authenticated).
+export async function fetchAdminKycDocUrl(docId) {
+  const res = await api.get(`/admin/kyc/documents/${docId}`, { responseType: "blob" });
+  return URL.createObjectURL(res.data);
+}

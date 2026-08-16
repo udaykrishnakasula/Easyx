@@ -16,8 +16,10 @@ import ProfilePage from "@/features/profile/ProfilePage";
 import NotificationsPage from "@/features/notifications/NotificationsPage";
 import DepositPage from "@/features/deposit/DepositPage";
 import ReferralPage from "@/features/referral/ReferralPage";
+import KYCPage from "@/features/kyc/KYCPage";
 import AdminLayout from "@/features/admin/AdminLayout";
 import AdminDepositsPage from "@/features/admin/AdminDepositsPage";
+import AdminKycPage from "@/features/admin/AdminKycPage";
 import AdminSettingsPage from "@/features/admin/AdminSettingsPage";
 import ComingSoon from "@/features/common/ComingSoon";
 
@@ -55,7 +57,7 @@ function App() {
               <Route path="deposit" element={<DepositPage />} />
               <Route path="withdraw" element={<ComingSoon title="Withdraw" note="KYC-gated withdrawals with admin approval are coming soon." />} />
               <Route path="referral" element={<ReferralPage />} />
-              <Route path="kyc" element={<ComingSoon title="KYC" note="Identity verification (ID + selfie) is coming soon." />} />
+              <Route path="kyc" element={<KYCPage />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="security" element={<ComingSoon title="Security" note="Password change and session security controls are coming soon." />} />
             </Route>
@@ -70,6 +72,7 @@ function App() {
             >
               <Route index element={<Navigate to="/admin/deposits" replace />} />
               <Route path="deposits" element={<AdminDepositsPage />} />
+              <Route path="kyc" element={<AdminKycPage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
             </Route>
 

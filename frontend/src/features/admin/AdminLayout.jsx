@@ -1,11 +1,12 @@
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { ShieldCheck, Inbox, Settings, ArrowLeft, LogOut } from "lucide-react";
+import { ShieldCheck, Inbox, Settings, ArrowLeft, LogOut, BadgeCheck } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 
 const NAV = [
   { to: "/admin/deposits", label: "Deposits", icon: Inbox },
+  { to: "/admin/kyc", label: "KYC Review", icon: BadgeCheck },
   { to: "/admin/settings", label: "Deposit Settings", icon: Settings },
 ];
 

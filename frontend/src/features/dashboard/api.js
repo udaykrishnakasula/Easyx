@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import axios from "axios";
+import api, { getToken } from "@/lib/api";
 
 export function useDashboard() {
   return useQuery({
@@ -115,6 +116,37 @@ export function useReferralSummary() {
   return useQuery({
     queryKey: ["referral-summary"],
     queryFn: async () => (await api.get("/referrals/summary")).data,
+  });
+}
+
+export function useKyc() {
+  return useQuery({
+    queryKey: ["kyc"],
+    queryFn: async () => (await api.get("/kyc")).data,
+  });
+}
+
+export function useSubmitKyc() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ idType, idNumber, idDocument, selfie }) => {
+      const form = new FormData();
+      form.append("id_type", idType);
+      if (idNumber) form.append("id_number", idNumber);
+      form.append("id_document", idDocument);
+      form.append("selfie", selfie);
+      // Use the raw axios (via api) but let the browser set the multipart boundary.
+      const token = getToken();
+      const base = process.env.REACT_APP_BACKEND_URL;
+      return (
+        await axios.post(`${base}/api/kyc/submit`, form, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+      ).data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["kyc"] });
+    },
   });
 }
 

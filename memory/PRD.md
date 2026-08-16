@@ -111,3 +111,27 @@ desktop & mobile, no horizontal overflow, mobile-viewport-stable (svh/dvh).
   link now routes to the real page (was ComingSoon).
 - Verified: backend 58/58 tests pass (basic $100, 3x=$300, no-referrer, idempotency,
   withdrawable, decimals, self-referral). Demo data: referrer earned $330 (3 Gold + 1 Silver).
+
+## Update (2026-08) — KYC Identity Verification
+- KYC NOT required to invest; REQUIRED for withdrawal (enforced in withdrawal task).
+- Docs: government ID photo (Aadhaar/National ID/Passport) + Selfie. Optional ID
+  number stored ENCRYPTED (Fernet, KYC_ENC_KEY) and never returned in plaintext
+  (only id_number_present boolean). Document bytes stored in MongoDB (BSON Binary)
+  => NO public URL; served only via authenticated owner-or-admin endpoints.
+- Statuses none->pending->(approved|rejected); resubmit after rejection.
+- File validation: JPG/PNG/WebP/PDF, max 5MB, non-empty.
+- User endpoints: GET /api/kyc, POST /api/kyc/submit (multipart), GET /api/kyc/documents/{id}.
+- Admin: GET /api/admin/kyc[?status], approve, reject {reason}, GET /api/admin/kyc/documents/{id}.
+- Notifications on approve/reject. Files: kyc_service.py, kyc_router.py, admin_router.py.
+- Frontend: /app/kyc user page (submit/resubmit + status), /admin/kyc admin review page
+  (thumbnails via authenticated blob fetch, approve/reject with reason).
+- Verified: backend 43/44 tests pass (security: cross-user 403, no plaintext ID, file validation).
+
+## Referral Notifications — ALREADY LIVE
+- referral_service.pay_for_investment creates an in-app 'referral_commission' notification
+  ("You earned X USDT ...") the moment a referral's investment pays commission. Surfaces on
+  the existing Notifications page + sidebar unread badge. No extra work needed.
+
+## Backlog (requested)
+- Withdrawal system with Email OTP (Resend) — BLOCKED on RESEND_API_KEY from user.
+- Admin Referral View (read-only list of relationships + commissions paid).
