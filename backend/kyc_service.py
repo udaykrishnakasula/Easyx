@@ -49,6 +49,37 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _sniff_content(data: bytes) -> str | None:
+    """Detect the real file type from magic bytes. Returns a MIME string or None.
+
+    Prevents a client from spoofing Content-Type (e.g. uploading HTML/JS/SVG
+    while claiming image/png) which could otherwise be a stored-XSS vector when
+    the document is served back inline.
+    """
+    if len(data) < 4:
+        return None
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:4] == b"RIFF" and len(data) >= 12 and data[8:12] == b"WEBP":
+        return "image/webp"
+    if data[:4] == b"%PDF":
+        return "application/pdf"
+    return None
+
+
+def validate_bytes(content_type: str, data: bytes) -> None:
+    """Verify the actual bytes match an allowed type AND the claimed content_type."""
+    sniffed = _sniff_content(data)
+    if sniffed is None or sniffed not in ALLOWED_MIME or sniffed != content_type:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "invalid_file_content",
+                    "message": "File content does not match an allowed image or PDF type."},
+        )
+
+
 def validate_upload(filename: str, content_type: str, size: int):
     if content_type not in ALLOWED_MIME:
         raise HTTPException(
@@ -125,6 +156,9 @@ async def submit(user_id: str, id_type: str, id_number: str | None,
 
     validate_upload(id_doc["filename"], id_doc["content_type"], len(id_doc["bytes"]))
     validate_upload(selfie["filename"], selfie["content_type"], len(selfie["bytes"]))
+    # Defence-in-depth: verify real file signatures, not just the claimed type.
+    validate_bytes(id_doc["content_type"], id_doc["bytes"])
+    validate_bytes(selfie["content_type"], selfie["bytes"])
 
     ts = _now()
     record_id = rec["id"] if rec else str(uuid.uuid4())
