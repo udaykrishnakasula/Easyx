@@ -9,6 +9,7 @@ import notify_service
 import referral_service
 import wallet_service
 import maintenance_service
+import withdrawal_service
 from deps import get_current_user
 
 router = APIRouter(prefix="/api", tags=["user"])
@@ -23,6 +24,12 @@ class DepositIn(BaseModel):
     network: str = Field(pattern="^(TRC20|BEP20)$")
     amount: str = Field(min_length=1, max_length=32)
     tx_hash: str = Field(min_length=8, max_length=128)
+
+
+class WithdrawIn(BaseModel):
+    network: str = Field(pattern="^(TRC20|BEP20)$")
+    amount: str = Field(min_length=1, max_length=32)
+    to_address: str = Field(min_length=8, max_length=128)
 
 
 @router.get("/dashboard")
@@ -61,6 +68,22 @@ async def create_deposit(payload: DepositIn, user: dict = Depends(get_current_us
 @router.get("/deposits")
 async def list_deposits(user: dict = Depends(get_current_user)):
     return await deposit_service.list_user(user["id"])
+
+
+@router.get("/withdrawals/config")
+async def withdrawals_config(user: dict = Depends(get_current_user)):
+    return withdrawal_service.get_config()
+
+
+@router.post("/withdrawals", status_code=201)
+async def create_withdrawal(payload: WithdrawIn, user: dict = Depends(get_current_user)):
+    await maintenance_service.ensure_allowed("withdrawals")
+    return await withdrawal_service.create(user, payload.network, payload.amount, payload.to_address)
+
+
+@router.get("/withdrawals")
+async def list_withdrawals(user: dict = Depends(get_current_user)):
+    return await withdrawal_service.list_user(user["id"])
 
 
 @router.get("/wallet")

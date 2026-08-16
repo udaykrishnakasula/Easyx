@@ -53,6 +53,34 @@ export function useCreateDeposit() {
   });
 }
 
+export function useWithdrawConfig() {
+  return useQuery({
+    queryKey: ["withdraw-config"],
+    queryFn: async () => (await api.get("/withdrawals/config")).data,
+  });
+}
+
+export function useMyWithdrawals() {
+  return useQuery({
+    queryKey: ["my-withdrawals"],
+    queryFn: async () => (await api.get("/withdrawals")).data,
+    refetchInterval: 30000,
+  });
+}
+
+export function useCreateWithdrawal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ network, amount, to_address }) =>
+      (await api.post("/withdrawals", { network, amount, to_address })).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-withdrawals"] });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
 export function useNotifications(unreadOnly = false) {
   return useQuery({
     queryKey: ["notifications", unreadOnly ? "unread" : "all"],

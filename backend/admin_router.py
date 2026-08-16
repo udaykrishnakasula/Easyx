@@ -20,6 +20,9 @@ import referral_service
 import audit_service
 import maintenance_service
 import notify_service
+import plans_service
+import withdrawal_service
+import admin_stats_service
 from db import db
 from deps import require_admin
 
@@ -336,3 +339,114 @@ async def admin_list_audit_logs(
         action=action, entity_type=entity_type,
         limit=min(max(limit, 1), 500), skip=max(skip, 0),
     )
+
+
+# --------------------------- Overview / KPIs ---------------------------
+
+@router.get("/overview")
+async def admin_overview_stats(admin: dict = Depends(require_admin)):
+    return await admin_stats_service.overview()
+
+
+# --------------------------- Investment Plans (editor + history) ---------------------------
+
+class PlanUpdateIn(BaseModel):
+    name: Optional[str] = Field(default=None, max_length=60)
+    price: Optional[str] = Field(default=None, max_length=32)
+    profit_percentage: Optional[str] = Field(default=None, max_length=32)
+    maturity_percentage: Optional[str] = Field(default=None, max_length=32)
+    lock_days: Optional[int] = Field(default=None, ge=1, le=3650)
+    is_active: Optional[bool] = None
+
+
+@router.get("/plans")
+async def admin_list_plans(admin: dict = Depends(require_admin)):
+    return await plans_service.list_plans()
+
+
+@router.put("/plans/{plan_key}")
+async def admin_update_plan(plan_key: str, payload: PlanUpdateIn, admin: dict = Depends(require_admin)):
+    patch = {k: v for k, v in payload.model_dump().items() if v is not None}
+    updated = await plans_service.update_plan(plan_key, patch, admin["id"])
+    await audit_service.log(
+        "plan.update", actor=admin, entity_type="investment_plan", entity_id=plan_key, meta=patch,
+    )
+    return updated
+
+
+@router.get("/plans/{plan_key}/history")
+async def admin_plan_history(plan_key: str, admin: dict = Depends(require_admin)):
+    return await plans_service.plan_history(plan_key)
+
+
+# --------------------------- Investments (view / cancel + refund) ---------------------------
+
+class CancelInvestmentIn(BaseModel):
+    refund_amount: str = Field(min_length=1, max_length=32)
+    reason: str = Field(min_length=3, max_length=300)
+
+
+@router.get("/investments")
+async def admin_list_investments(
+    status: Optional[str] = None,
+    q: Optional[str] = None,
+    admin: dict = Depends(require_admin),
+):
+    return await invest_service.admin_list_investments(status_filter=status, q=q)
+
+
+@router.post("/investments/{investment_id}/cancel")
+async def admin_cancel_investment(investment_id: str, payload: CancelInvestmentIn, admin: dict = Depends(require_admin)):
+    result = await invest_service.admin_cancel(
+        investment_id, payload.refund_amount, payload.reason, admin["id"],
+    )
+    await audit_service.log(
+        "investment.cancel", actor=admin, entity_type="investment", entity_id=investment_id,
+        meta={"refund_amount": payload.refund_amount, "reason": payload.reason},
+    )
+    return result
+
+
+# --------------------------- Withdrawals (approve / reject / process) ---------------------------
+
+class WithdrawalNoteIn(BaseModel):
+    reason: Optional[str] = Field(default=None, max_length=300)
+
+
+class WithdrawalProcessIn(BaseModel):
+    tx_hash: str = Field(min_length=8, max_length=128)
+
+
+@router.get("/withdrawals")
+async def admin_list_withdrawals(status: Optional[str] = None, admin: dict = Depends(require_admin)):
+    return await withdrawal_service.admin_list(status=status)
+
+
+@router.post("/withdrawals/{withdrawal_id}/approve")
+async def admin_approve_withdrawal(withdrawal_id: str, payload: WithdrawalNoteIn, admin: dict = Depends(require_admin)):
+    result = await withdrawal_service.approve(withdrawal_id, admin["id"], note=payload.reason)
+    await audit_service.log(
+        "withdrawal.approve", actor=admin, entity_type="withdrawal", entity_id=withdrawal_id,
+    )
+    return result
+
+
+@router.post("/withdrawals/{withdrawal_id}/reject")
+async def admin_reject_withdrawal(withdrawal_id: str, payload: WithdrawalNoteIn, admin: dict = Depends(require_admin)):
+    result = await withdrawal_service.reject(withdrawal_id, admin["id"], note=payload.reason)
+    await audit_service.log(
+        "withdrawal.reject", actor=admin, entity_type="withdrawal", entity_id=withdrawal_id,
+        meta={"reason": payload.reason},
+    )
+    return result
+
+
+@router.post("/withdrawals/{withdrawal_id}/process")
+async def admin_process_withdrawal(withdrawal_id: str, payload: WithdrawalProcessIn, admin: dict = Depends(require_admin)):
+    result = await withdrawal_service.process(withdrawal_id, admin["id"], payload.tx_hash)
+    await audit_service.log(
+        "withdrawal.process", actor=admin, entity_type="withdrawal", entity_id=withdrawal_id,
+        meta={"tx_hash": payload.tx_hash},
+    )
+    return result
+

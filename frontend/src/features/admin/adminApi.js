@@ -158,3 +158,81 @@ export function usePublicMaintenance() {
     refetchInterval: 60000,
   });
 }
+
+/* ------------------------- Overview / KPIs ------------------------- */
+export function useAdminOverview() {
+  return useQuery({
+    queryKey: ["admin-overview"],
+    queryFn: async () => (await api.get("/admin/overview")).data,
+    refetchInterval: 30000,
+  });
+}
+
+/* ------------------------- Investment plans ------------------------- */
+export function useAdminPlans() {
+  return useQuery({
+    queryKey: ["admin-plans"],
+    queryFn: async () => (await api.get("/admin/plans")).data,
+  });
+}
+
+export function useSavePlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ key, patch }) => (await api.put(`/admin/plans/${key}`, patch)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-plans"] }),
+  });
+}
+
+export function usePlanHistory(key) {
+  return useQuery({
+    queryKey: ["admin-plan-history", key],
+    queryFn: async () => (await api.get(`/admin/plans/${key}/history`)).data,
+    enabled: !!key,
+  });
+}
+
+/* ------------------------- Investments (cancel) ------------------------- */
+export function useAdminInvestments({ status, q } = {}) {
+  return useQuery({
+    queryKey: ["admin-investments", status || "all", q || ""],
+    queryFn: async () => {
+      const params = {};
+      if (status) params.status = status;
+      if (q) params.q = q;
+      return (await api.get("/admin/investments", { params })).data;
+    },
+    refetchInterval: 30000,
+  });
+}
+
+export function useCancelInvestment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, refund_amount, reason }) =>
+      (await api.post(`/admin/investments/${id}/cancel`, { refund_amount, reason })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-investments"] }),
+  });
+}
+
+/* ------------------------- Withdrawals ------------------------- */
+export function useAdminWithdrawals({ status } = {}) {
+  return useQuery({
+    queryKey: ["admin-withdrawals", status || "all"],
+    queryFn: async () => {
+      const params = {};
+      if (status) params.status = status;
+      return (await api.get("/admin/withdrawals", { params })).data;
+    },
+    refetchInterval: 20000,
+  });
+}
+
+export function useWithdrawalAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, action, body }) =>
+      (await api.post(`/admin/withdrawals/${id}/${action}`, body || {})).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-withdrawals"] }),
+  });
+}

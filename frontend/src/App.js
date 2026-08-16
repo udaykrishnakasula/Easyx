@@ -20,6 +20,11 @@ import KYCPage from "@/features/kyc/KYCPage";
 import AdminLayout from "@/features/admin/AdminLayout";
 import AdminUsersPage from "@/features/admin/AdminUsersPage";
 import AdminMaintenancePage from "@/features/admin/AdminMaintenancePage";
+import AdminOverviewPage from "@/features/admin/AdminOverviewPage";
+import AdminPlansPage from "@/features/admin/AdminPlansPage";
+import AdminInvestmentsPage from "@/features/admin/AdminInvestmentsPage";
+import AdminWithdrawalsPage from "@/features/admin/AdminWithdrawalsPage";
+import WithdrawPage from "@/features/withdraw/WithdrawPage";
 import AdminDepositsPage from "@/features/admin/AdminDepositsPage";
 import AdminKycPage from "@/features/admin/AdminKycPage";
 import AdminReferralsPage from "@/features/admin/AdminReferralsPage";
@@ -58,7 +63,7 @@ function App() {
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="deposit" element={<DepositPage />} />
-              <Route path="withdraw" element={<ComingSoon title="Withdraw" note="KYC-gated withdrawals with admin approval are coming soon." />} />
+              <Route path="withdraw" element={<WithdrawPage />} />
               <Route path="referral" element={<ReferralPage />} />
               <Route path="kyc" element={<KYCPage />} />
               <Route path="notifications" element={<NotificationsPage />} />
@@ -73,9 +78,13 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<Navigate to="/admin/users" replace />} />
+              <Route index element={<Navigate to="/admin/overview" replace />} />
+              <Route path="overview" element={<AdminOverviewPage />} />
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="deposits" element={<AdminDepositsPage />} />
+              <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
+              <Route path="investments" element={<AdminInvestmentsPage />} />
+              <Route path="plans" element={<AdminPlansPage />} />
               <Route path="kyc" element={<AdminKycPage />} />
               <Route path="referrals" element={<AdminReferralsPage />} />
               <Route path="maintenance" element={<AdminMaintenancePage />} />

@@ -172,6 +172,104 @@ async def list_investments(user_id: str, plan_key: str | None = None):
     return [serialize_investment(i) async for i in cur]
 
 
+async def admin_list_investments(status_filter: str | None = None, q: str | None = None, limit: int = 200):
+    """List investments with basic user info for the admin console."""
+    query: dict = {}
+    if status_filter:
+        query["status"] = status_filter
+    else:
+        query["status"] = {"$ne": "pending"}
+    if q:
+        rx = {"$regex": q.strip(), "$options": "i"}
+        matched = [u["id"] async for u in db.users.find(
+            {"$or": [{"name": rx}, {"email": rx}]}, {"id": 1}
+        )]
+        query["user_id"] = {"$in": matched}
+    invs = [i async for i in db.investments.find(query).sort("created_at", -1).limit(limit)]
+    user_ids = list({i["user_id"] for i in invs})
+    users = {}
+    if user_ids:
+        async for u in db.users.find({"id": {"$in": user_ids}}, {"id": 1, "name": 1, "email": 1}):
+            users[u["id"]] = {"name": u.get("name"), "email": u.get("email")}
+    out = []
+    for i in invs:
+        row = serialize_investment(i)
+        row["user"] = users.get(i["user_id"], {"name": None, "email": None})
+        row["user_id"] = i["user_id"]
+        row["refund_amount"] = fmt(i["refund_amount"]) if i.get("refund_amount") is not None else None
+        row["cancel_reason"] = i.get("cancel_reason")
+        row["cancelled_at"] = i.get("cancelled_at")
+        out.append(row)
+    return out
+
+
+async def admin_cancel(investment_id: str, refund_amount, reason: str, admin_id: str) -> dict:
+    """Admin-cancel an ACTIVE investment.
+
+    - Refund amount may be $0 up to the original principal (profit is NEVER paid).
+    - Already-paid referral commission is NOT reversed.
+    - The active->cancelled flip is atomic so it can never race the maturity engine.
+    """
+    inv = await db.investments.find_one({"id": investment_id})
+    if not inv:
+        raise HTTPException(status_code=404, detail="Investment not found.")
+    if inv["status"] != "active":
+        raise HTTPException(status_code=409, detail=f"Only active investments can be cancelled (this one is {inv['status']}).")
+
+    principal = to_dec(inv["principal"])
+    try:
+        refund = to_dec(refund_amount)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid refund amount.")
+    if refund < 0 or refund > principal:
+        raise HTTPException(status_code=422, detail=f"Refund must be between 0 and the principal ({fmt(principal)} USDT).")
+
+    reason = (reason or "").strip()
+    if len(reason) < 3:
+        raise HTTPException(status_code=422, detail="A cancellation reason is required.")
+
+    ts = _now()
+    # Atomic claim: only the winner (vs a concurrent maturity flip) proceeds.
+    res = await db.investments.update_one(
+        {"id": investment_id, "status": "active"},
+        {"$set": {
+            "status": "cancelled", "cancelled_at": ts, "cancel_reason": reason,
+            "refund_amount": d128(refund), "cancelled_by": admin_id, "updated_at": ts,
+        }},
+    )
+    if res.modified_count != 1:
+        current = await db.investments.find_one({"id": investment_id})
+        raise HTTPException(status_code=409, detail=f"Investment is no longer active (now {current['status']}). No changes made.")
+
+    # Refund to available wallet (idempotent). Profit is never included.
+    if refund > 0:
+        await wallet_service.credit(
+            inv["user_id"], refund, tx_type="REFUND",
+            ref_type="investment", ref_id=investment_id,
+            idempotency_key=f"invest-cancel-refund:{investment_id}",
+            note=f"Investment cancelled — {fmt(refund)} USDT refunded",
+        )
+
+    await referral_service_notify(inv, refund, reason)
+    inv = await db.investments.find_one({"id": investment_id})
+    return serialize_investment(inv)
+
+
+async def referral_service_notify(inv: dict, refund, reason: str):
+    """Notify the user their investment was cancelled (best-effort)."""
+    try:
+        import notify_service
+        await notify_service.create(
+            inv["user_id"], ntype="investment_cancelled",
+            title="Investment cancelled",
+            body=(f"Your {inv.get('plan_name')} investment was cancelled by an administrator. "
+                  f"{fmt(refund)} USDT was refunded to your wallet. Reason: {reason}"),
+            dedupe_key=f"invest-cancelled:{inv['id']}",
+        )
+    except Exception:
+        pass
+
+
 async def _plan_summary(user_id: str, plan: dict) -> dict:
     """Backend-computed lock state + aggregates for one plan."""
     invs = [i async for i in db.investments.find(

@@ -223,6 +223,11 @@ async def admin_approve(record_id: str, admin_id: str) -> dict:
         {"$set": {"status": "approved", "admin_id": admin_id, "reviewed_at": ts,
                   "reject_reason": None, "updated_at": ts}},
     )
+    # Update user's kyc_status field so withdrawal enforcement works
+    await db.users.update_one(
+        {"id": rec["user_id"]},
+        {"$set": {"kyc_status": "approved"}},
+    )
     await notify_service.create(
         user_id=rec["user_id"], ntype="kyc_approved",
         title="KYC approved",
@@ -250,6 +255,11 @@ async def admin_reject(record_id: str, admin_id: str, reason: str) -> dict:
         {"id": record_id},
         {"$set": {"status": "rejected", "admin_id": admin_id, "reviewed_at": ts,
                   "reject_reason": reason, "updated_at": ts}},
+    )
+    # Update user's kyc_status field
+    await db.users.update_one(
+        {"id": rec["user_id"]},
+        {"$set": {"kyc_status": "rejected"}},
     )
     await notify_service.create(
         user_id=rec["user_id"], ntype="kyc_rejected",
