@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 import invest_service
+import deposit_service
 import notify_service
 import wallet_service
 from deps import get_current_user
@@ -14,6 +15,12 @@ router = APIRouter(prefix="/api", tags=["user"])
 class BuyIn(BaseModel):
     plan_key: str = Field(pattern="^(silver|gold|platinum|diamond)$")
     idempotency_key: Optional[str] = Field(default=None, max_length=80)
+
+
+class DepositIn(BaseModel):
+    network: str = Field(pattern="^(TRC20|BEP20)$")
+    amount: str = Field(min_length=1, max_length=32)
+    tx_hash: str = Field(min_length=8, max_length=128)
 
 
 @router.get("/dashboard")
@@ -35,6 +42,21 @@ async def buy_investment(payload: BuyIn, user: dict = Depends(get_current_user))
 async def investments(plan_key: Optional[str] = Query(default=None),
                       user: dict = Depends(get_current_user)):
     return await invest_service.list_investments(user["id"], plan_key)
+
+
+@router.get("/deposits/config")
+async def deposits_config(user: dict = Depends(get_current_user)):
+    return await deposit_service.get_config()
+
+
+@router.post("/deposits", status_code=201)
+async def create_deposit(payload: DepositIn, user: dict = Depends(get_current_user)):
+    return await deposit_service.create_deposit(user["id"], payload.network, payload.amount, payload.tx_hash)
+
+
+@router.get("/deposits")
+async def list_deposits(user: dict = Depends(get_current_user)):
+    return await deposit_service.list_user(user["id"])
 
 
 @router.get("/wallet")

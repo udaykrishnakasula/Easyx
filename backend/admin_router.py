@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 import invest_service
+import deposit_service
 import maturity_service
 import wallet_service
 from db import db
@@ -85,3 +86,44 @@ async def backdate_investment(inv_id: str, payload: BackdateIn, admin: dict = De
         {"$set": {"maturity_at": new_maturity, "updated_at": datetime.now(timezone.utc).isoformat()}},
     )
     return {"ok": True, "maturity_at": new_maturity}
+
+
+# --------------------------- Deposits (manual verification) ---------------------------
+
+class ApproveDepositIn(BaseModel):
+    approved_amount: Optional[str] = Field(default=None, description="Optional override; defaults to submitted amount")
+    note: Optional[str] = Field(default=None, max_length=300)
+
+
+class RejectDepositIn(BaseModel):
+    note: Optional[str] = Field(default=None, max_length=300)
+
+
+class DepositAddressesIn(BaseModel):
+    trc20: str = Field(min_length=6, max_length=128)
+    bep20: str = Field(min_length=6, max_length=128)
+
+
+@router.get("/deposits")
+async def admin_list_deposits(status: Optional[str] = None, admin: dict = Depends(require_admin)):
+    return await deposit_service.admin_list(status)
+
+
+@router.post("/deposits/{deposit_id}/approve")
+async def admin_approve_deposit(deposit_id: str, payload: ApproveDepositIn, admin: dict = Depends(require_admin)):
+    return await deposit_service.approve(deposit_id, admin["id"], payload.approved_amount, payload.note)
+
+
+@router.post("/deposits/{deposit_id}/reject")
+async def admin_reject_deposit(deposit_id: str, payload: RejectDepositIn, admin: dict = Depends(require_admin)):
+    return await deposit_service.reject(deposit_id, admin["id"], payload.note)
+
+
+@router.get("/settings/deposit")
+async def admin_get_deposit_settings(admin: dict = Depends(require_admin)):
+    return await deposit_service.get_config()
+
+
+@router.put("/settings/deposit")
+async def admin_set_deposit_settings(payload: DepositAddressesIn, admin: dict = Depends(require_admin)):
+    return await deposit_service.set_deposit_addresses(payload.trc20, payload.bep20, admin["id"])

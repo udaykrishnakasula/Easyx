@@ -1,9 +1,10 @@
 import React from "react";
-import { Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, ArrowDownToLine } from "lucide-react";
 import dayjs from "dayjs";
 
 import { useWallet, useTransactions, money } from "@/features/dashboard/api";
-import { PageHeading, EasyXCard, EasyXStat, EasyXLoader, EasyXEmptyState } from "@/design/EasyX";
+import { PageHeading, EasyXCard, EasyXStat, EasyXLoader, EasyXButton } from "@/design/EasyX";
 
 export default function WalletPage() {
   const { data: wallet, isLoading } = useWallet();
@@ -11,7 +12,18 @@ export default function WalletPage() {
 
   return (
     <div data-testid="wallet-page">
-      <PageHeading title="Wallet" subtitle="Your available USDT balance and activity." icon={WalletIcon} />
+      <PageHeading
+        title="Wallet"
+        subtitle="Your available USDT balance and activity."
+        icon={WalletIcon}
+        actions={
+          <Link to="/app/deposit">
+            <EasyXButton variant="accent" data-testid="wallet-deposit-button">
+              <ArrowDownToLine className="mr-2 h-4 w-4" /> Deposit
+            </EasyXButton>
+          </Link>
+        }
+      />
 
       {isLoading || !wallet ? (
         <EasyXLoader />

@@ -24,7 +24,7 @@ const NAV = [
   { to: "/app/security", label: "Security", icon: Lock },
 ];
 
-function NavItems({ onNavigate, unreadCount = 0 }) {
+function NavItems({ onNavigate, unreadCount = 0, isAdmin = false }) {
   return (
     <nav className="flex flex-col gap-1" data-testid="dashboard-nav">
       {NAV.map(({ to, label, icon: Icon }) => (

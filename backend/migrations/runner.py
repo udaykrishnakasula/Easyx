@@ -7,6 +7,7 @@ from . import schema as m0001_schema
 from . import seed as m0002_seed
 from . import ledger_types as m0003_ledger_types
 from . import maturity_indexes as m0004_maturity_indexes
+from . import deposit_support as m0005_deposit_support
 from .helpers import now_iso
 
 logger = logging.getLogger("migrations")
@@ -17,6 +18,7 @@ MIGRATIONS = [
     (2, "seed_data", m0002_seed),
     (3, "canonical_ledger_types", m0003_ledger_types),
     (4, "maturity_indexes", m0004_maturity_indexes),
+    (5, "deposit_support", m0005_deposit_support),
 ]
 
 

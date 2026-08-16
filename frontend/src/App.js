@@ -14,6 +14,10 @@ import WalletPage from "@/features/wallet/WalletPage";
 import TransactionsPage from "@/features/transactions/TransactionsPage";
 import ProfilePage from "@/features/profile/ProfilePage";
 import NotificationsPage from "@/features/notifications/NotificationsPage";
+import DepositPage from "@/features/deposit/DepositPage";
+import AdminLayout from "@/features/admin/AdminLayout";
+import AdminDepositsPage from "@/features/admin/AdminDepositsPage";
+import AdminSettingsPage from "@/features/admin/AdminSettingsPage";
 import ComingSoon from "@/features/common/ComingSoon";
 
 const Landing = () => (
@@ -47,12 +51,25 @@ function App() {
               <Route path="wallet" element={<WalletPage />} />
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="profile" element={<ProfilePage />} />
-              <Route path="deposit" element={<ComingSoon title="Deposit" note="Manual USDT deposit (TRC20/BEP20) with admin verification is coming soon." />} />
+              <Route path="deposit" element={<DepositPage />} />
               <Route path="withdraw" element={<ComingSoon title="Withdraw" note="KYC-gated withdrawals with admin approval are coming soon." />} />
               <Route path="referral" element={<ComingSoon title="Referral" note="One-level referral rewards are coming soon." />} />
               <Route path="kyc" element={<ComingSoon title="KYC" note="Identity verification (ID + selfie) is coming soon." />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="security" element={<ComingSoon title="Security" note="Password change and session security controls are coming soon." />} />
+            </Route>
+
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/admin/deposits" replace />} />
+              <Route path="deposits" element={<AdminDepositsPage />} />
+              <Route path="settings" element={<AdminSettingsPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

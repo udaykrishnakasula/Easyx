@@ -27,6 +27,31 @@ export function useTransactions() {
   });
 }
 
+export function useDepositConfig() {
+  return useQuery({
+    queryKey: ["deposit-config"],
+    queryFn: async () => (await api.get("/deposits/config")).data,
+  });
+}
+
+export function useMyDeposits() {
+  return useQuery({
+    queryKey: ["my-deposits"],
+    queryFn: async () => (await api.get("/deposits")).data,
+  });
+}
+
+export function useCreateDeposit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ network, amount, tx_hash }) =>
+      (await api.post("/deposits", { network, amount, tx_hash })).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-deposits"] });
+    },
+  });
+}
+
 export function useNotifications(unreadOnly = false) {
   return useQuery({
     queryKey: ["notifications", unreadOnly ? "unread" : "all"],
