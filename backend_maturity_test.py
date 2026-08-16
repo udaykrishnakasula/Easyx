@@ -24,7 +24,7 @@ from decimal import Decimal
 import httpx
 
 # Base URL from environment or default
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://b2ba0849-82e2-4f86-90a2-0900a25b06ef.preview.emergentagent.com")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://x-simple.preview.emergentagent.com")
 API_BASE = f"{BASE_URL}/api"
 
 # Admin credentials
