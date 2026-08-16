@@ -14,7 +14,7 @@ import time
 import json
 from decimal import Decimal
 
-BASE_URL = "https://9673c021-26dd-4069-8414-97351e7a3146.preview.emergentagent.com/api"
+BASE_URL = "https://easyx-loader.preview.emergentagent.com/api"
 ADMIN_EMAIL = "admin@easyx.com"
 ADMIN_PASSWORD = "Admin@Easyx2026"
 

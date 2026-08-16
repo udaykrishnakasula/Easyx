@@ -9,7 +9,7 @@ import time
 from decimal import Decimal
 
 # Base URL from frontend/.env
-BASE_URL = "https://data-intake-21.preview.emergentagent.com/api"
+BASE_URL = "https://easyx-loader.preview.emergentagent.com/api"
 
 # Admin credentials
 ADMIN_EMAIL = "admin@easyx.com"

@@ -13,7 +13,7 @@ import time
 from datetime import datetime
 
 # Base URL from frontend/.env
-BASE_URL = "https://9673c021-26dd-4069-8414-97351e7a3146.preview.emergentagent.com/api"
+BASE_URL = "https://easyx-loader.preview.emergentagent.com/api"
 
 # Admin credentials
 ADMIN_EMAIL = "admin@easyx.com"

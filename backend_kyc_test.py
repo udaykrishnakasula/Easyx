@@ -7,7 +7,7 @@ import requests
 from PIL import Image
 
 # Backend base URL
-BASE_URL = "https://data-intake-21.preview.emergentagent.com/api"
+BASE_URL = "https://easyx-loader.preview.emergentagent.com/api"
 
 # Admin credentials
 ADMIN_EMAIL = "admin@easyx.com"
