@@ -20,6 +20,7 @@ import KYCPage from "@/features/kyc/KYCPage";
 import AdminLayout from "@/features/admin/AdminLayout";
 import AdminDepositsPage from "@/features/admin/AdminDepositsPage";
 import AdminKycPage from "@/features/admin/AdminKycPage";
+import AdminReferralsPage from "@/features/admin/AdminReferralsPage";
 import AdminSettingsPage from "@/features/admin/AdminSettingsPage";
 import ComingSoon from "@/features/common/ComingSoon";
 
@@ -73,6 +74,7 @@ function App() {
               <Route index element={<Navigate to="/admin/deposits" replace />} />
               <Route path="deposits" element={<AdminDepositsPage />} />
               <Route path="kyc" element={<AdminKycPage />} />
+              <Route path="referrals" element={<AdminReferralsPage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
             </Route>
 

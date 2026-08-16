@@ -16,6 +16,7 @@ import deposit_service
 import maturity_service
 import wallet_service
 import kyc_service
+import referral_service
 from db import db
 from deps import require_admin
 
@@ -161,3 +162,10 @@ async def admin_get_kyc_document(doc_id: str, admin: dict = Depends(require_admi
         headers={"Content-Disposition": f'inline; filename="kyc-{doc["doc_type"]}"',
                  "Cache-Control": "no-store, private"},
     )
+
+
+# --------------------------- Referrals (overview) ---------------------------
+
+@router.get("/referrals")
+async def admin_referrals_overview(admin: dict = Depends(require_admin)):
+    return await referral_service.admin_overview()

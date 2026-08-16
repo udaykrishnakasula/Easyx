@@ -77,3 +77,11 @@ export async function fetchAdminKycDocUrl(docId) {
   const res = await api.get(`/admin/kyc/documents/${docId}`, { responseType: "blob" });
   return URL.createObjectURL(res.data);
 }
+
+export function useAdminReferrals() {
+  return useQuery({
+    queryKey: ["admin-referrals"],
+    queryFn: async () => (await api.get("/admin/referrals")).data,
+    refetchInterval: 30000,
+  });
+}

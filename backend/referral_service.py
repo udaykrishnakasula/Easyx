@@ -189,3 +189,69 @@ async def summary(user: dict) -> dict:
         ],
         "commissions": [serialize_commission(c) for c in commissions],
     }
+
+
+async def admin_overview() -> dict:
+    """Platform-wide referral view for admins: every direct relationship and
+    every commission paid, plus roll-up stats."""
+    # Relationships are authoritative from users.referred_by (set once at signup).
+    referred = [u async for u in db.users.find(
+        {"referred_by": {"$ne": None}},
+        {"_id": 0, "id": 1, "name": 1, "email": 1, "referred_by": 1, "created_at": 1},
+    )]
+
+    commissions = [c async for c in db.referral_commissions.find().sort("created_at", -1)]
+
+    # Batch-load every user referenced so we can attach names/emails.
+    ids = set()
+    for u in referred:
+        ids.add(u["id"]); ids.add(u["referred_by"])
+    for c in commissions:
+        ids.add(c.get("referrer_id")); ids.add(c.get("referee_id"))
+    ids.discard(None)
+    umap = {}
+    async for u in db.users.find({"id": {"$in": list(ids)}}, {"_id": 0, "id": 1, "name": 1, "email": 1}):
+        umap[u["id"]] = {"name": u.get("name"), "email": u.get("email")}
+
+    def who(uid):
+        u = umap.get(uid) or {}
+        return {"id": uid, "name": u.get("name"), "email": u.get("email")}
+
+    total_paid = to_dec(0)
+    paid_count = 0
+    for c in commissions:
+        if c.get("status") == "paid":
+            total_paid += to_dec(c.get("amount", 0))
+            paid_count += 1
+
+    relationships = [
+        {"referrer": who(u["referred_by"]), "referee": who(u["id"]), "joined_at": u.get("created_at")}
+        for u in sorted(referred, key=lambda x: x.get("created_at") or "", reverse=True)
+    ]
+
+    commissions_out = [
+        {
+            "id": c["id"],
+            "referrer": who(c.get("referrer_id")),
+            "referee": who(c.get("referee_id")),
+            "investment_id": c.get("investment_id"),
+            "plan_key": c.get("plan_key"),
+            "amount": fmt(c.get("amount", 0)),
+            "percentage": fmt(c.get("percentage", 0)),
+            "status": c.get("status"),
+            "created_at": c.get("created_at"),
+        }
+        for c in commissions
+    ]
+
+    return {
+        "stats": {
+            "total_relationships": len(referred),
+            "total_referrers": len({u["referred_by"] for u in referred}),
+            "total_commissions": len(commissions),
+            "total_commissions_paid": paid_count,
+            "total_commission_amount": fmt(total_paid),
+        },
+        "relationships": relationships,
+        "commissions": commissions_out,
+    }

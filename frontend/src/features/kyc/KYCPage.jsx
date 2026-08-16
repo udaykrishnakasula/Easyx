@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { ShieldCheck, UploadCloud, CheckCircle2, Clock, XCircle, FileImage } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ShieldCheck, UploadCloud, CheckCircle2, Clock, XCircle, FileImage, Camera, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 
 import { useKyc, useSubmitKyc } from "@/features/dashboard/api";
@@ -24,25 +24,50 @@ const ALLOWED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 function FileField({ label, file, onPick, testId, hint }) {
   const inputRef = useRef(null);
+  const [preview, setPreview] = useState(null);
+
+  // Instant photo preview for images (object URL, revoked on change/unmount).
+  useEffect(() => {
+    if (file && file.type && file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setPreview(null);
+    return undefined;
+  }, [file]);
+
   return (
     <div>
       <div className="text-xs text-ex-muted mb-1">{label}</div>
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        data-testid={testId}
-        className="flex w-full items-center gap-3 rounded-ex-ctrl border border-dashed border-white/15 bg-white/[0.03] px-4 py-4 text-left transition hover:border-ex-accent/60"
-      >
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ex-lav-400/15 text-ex-lav-300">
-          {file ? <FileImage className="h-5 w-5" /> : <UploadCloud className="h-5 w-5" />}
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm text-ex-text">
-            {file ? file.name : "Click to upload"}
+      <div className="flex items-center gap-3">
+        {/* Preview thumbnail */}
+        <div className="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-ex border border-white/10 bg-white/[0.03]">
+          {preview ? (
+            <img src={preview} alt="preview" className="h-full w-full object-cover" data-testid={`${testId}-preview`} />
+          ) : file ? (
+            <FileImage className="h-6 w-6 text-ex-lav-300" />
+          ) : (
+            <Camera className="h-6 w-6 text-ex-muted" />
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          data-testid={testId}
+          className="flex flex-1 items-center gap-3 rounded-ex-ctrl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 text-left transition hover:border-ex-accent/60"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ex-lav-400/15 text-ex-lav-300">
+            <UploadCloud className="h-5 w-5" />
           </span>
-          <span className="block text-[11px] text-ex-muted">{hint}</span>
-        </span>
-      </button>
+          <span className="min-w-0">
+            <span className="block truncate text-sm text-ex-text">
+              {file ? file.name : "Click to upload"}
+            </span>
+            <span className="block text-[11px] text-ex-muted">{file ? "Tap to replace" : hint}</span>
+          </span>
+        </button>
+      </div>
       <input
         ref={inputRef}
         type="file"
@@ -50,6 +75,31 @@ function FileField({ label, file, onPick, testId, hint }) {
         className="hidden"
         onChange={(e) => onPick(e.target.files?.[0] || null)}
       />
+    </div>
+  );
+}
+
+const SELFIE_TIPS = [
+  "Use good, even lighting — face the light source",
+  "Make sure your whole face is clearly visible",
+  "Remove hats, sunglasses or anything covering your face",
+  "Keep a plain background and hold the camera steady",
+];
+
+function SelfieTips() {
+  return (
+    <div className="rounded-ex-ctrl border border-ex-lav-400/25 bg-ex-lav-400/[0.07] p-3" data-testid="kyc-selfie-tips">
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-ex-lav-200">
+        <Lightbulb className="h-3.5 w-3.5" /> Tips for an approvable selfie
+      </div>
+      <ul className="mt-2 space-y-1">
+        {SELFIE_TIPS.map((t) => (
+          <li key={t} className="flex items-start gap-2 text-[11px] text-ex-muted">
+            <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-ex-lav-300" />
+            {t}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -191,6 +241,7 @@ export default function KYCPage() {
                 </div>
 
                 <FileField label="Government ID (Aadhaar / National ID / Passport)" file={idDoc} onPick={pickId} testId="kyc-id-upload" hint="JPG, PNG, WebP or PDF · max 5 MB" />
+                <SelfieTips />
                 <FileField label="Selfie" file={selfie} onPick={pickSelfie} testId="kyc-selfie-upload" hint="A clear photo of your face · max 5 MB" />
 
                 <EasyXButton type="submit" className="w-full" disabled={!canSubmit} loading={submitKyc.isPending} data-testid="kyc-submit">
