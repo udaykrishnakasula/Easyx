@@ -14,6 +14,7 @@ from fastapi import HTTPException, status
 from pymongo.errors import DuplicateKeyError
 
 import wallet_service
+import referral_service
 from db import db
 from money import d128, fmt, to_dec
 
@@ -155,6 +156,11 @@ async def buy_plan(user: dict, plan_key: str, idempotency_key: str | None = None
         }},
     )
     inv_doc = await db.investments.find_one({"id": inv_id})
+
+    # Direct (1-level) referral commission — paid immediately on the successful
+    # investment. Best-effort & idempotent; never blocks/fails the purchase.
+    await referral_service.pay_for_investment(inv_doc)
+
     return serialize_investment(inv_doc)
 
 

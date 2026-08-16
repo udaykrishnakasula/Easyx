@@ -84,3 +84,30 @@ desktop & mobile, no horizontal overflow, mobile-viewport-stable (svh/dvh).
   lock_days_snapshot) so future admin plan changes never mutate existing investments.
 - Verified: 21 collections present, validators enforce enums + decimal, admin login regression OK.
 - Landing page untouched.
+
+## Update (2026-08) — Direct (1-level) Referral Commission System
+- Implemented ONE-LEVEL direct referral commission per spec. Only the DIRECT
+  referrer earns; no multi-level.
+- Commission = referral_percentage (default 10%, platform_settings) of EACH
+  successful investment's principal. In EasyX investments activate immediately
+  on purchase from wallet, so commission is paid at purchase time.
+- ONE commission record PER investment: buying 3 Gold => 3 records of $100 = $300.
+- Paid IMMEDIATELY to referrer's wallet (REFERRAL_COMMISSION ledger, ref_type
+  'referral', inc total_earned) => available + withdrawable.
+- IDEMPOTENT: unique sparse index on referral_commissions.investment_id +
+  wallet idempotency_key 'referral:{inv_id}' => never double-pays.
+- Self-referral impossible (referred_by set once at signup); duplicate
+  relationship impossible (unique referee_id in referrals collection).
+- NO reversal if admin later cancels an investment (no reversal logic exists).
+- Reinvestment = a new investment => a new 10% commission automatically.
+- Migration m0006 DROPPED the wrong unique index on referral_commissions.referee_id
+  (it blocked multiple commissions per referee) and kept the unique investment_id guard.
+- Files: backend/referral_service.py (new), invest_service.py (hook in buy_plan),
+  auth_service.py (referrals relationship record), user_router.py
+  (GET /api/referrals/summary), migrations/referral_commissions_fix.py.
+- Frontend: new ReferralPage (/app/referral) — referral code + share link
+  (?ref=CODE prefills register), total commission earned, total referrals,
+  commission rate, referred-users list, commission history. Sidebar "Referrals"
+  link now routes to the real page (was ComingSoon).
+- Verified: backend 58/58 tests pass (basic $100, 3x=$300, no-referrer, idempotency,
+  withdrawable, decimals, self-referral). Demo data: referrer earned $330 (3 Gold + 1 Silver).

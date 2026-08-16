@@ -105,6 +105,21 @@ async def register_user(name: str, email: str, phone: str, password: str, referr
         }},
         upsert=True,
     )
+
+    # Record the direct (level-1) referral relationship. Unique on referee_id
+    # guarantees at most one referrer per user (no duplicate relationships).
+    if referred_by:
+        try:
+            await db.referrals.insert_one({
+                "id": str(uuid.uuid4()),
+                "referrer_id": referred_by,
+                "referee_id": user["id"],
+                "level": 1,
+                "created_at": user["created_at"],
+            })
+        except DuplicateKeyError:
+            pass
+
     return user
 
 

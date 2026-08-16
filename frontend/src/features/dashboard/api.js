@@ -111,4 +111,11 @@ export function useBuyPlan() {
   });
 }
 
+export function useReferralSummary() {
+  return useQuery({
+    queryKey: ["referral-summary"],
+    queryFn: async () => (await api.get("/referrals/summary")).data,
+  });
+}
+
 export const money = (v) => `$${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

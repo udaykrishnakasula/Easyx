@@ -6,6 +6,7 @@ from typing import Optional
 import invest_service
 import deposit_service
 import notify_service
+import referral_service
 import wallet_service
 from deps import get_current_user
 
@@ -62,6 +63,11 @@ async def list_deposits(user: dict = Depends(get_current_user)):
 @router.get("/wallet")
 async def wallet(user: dict = Depends(get_current_user)):
     return await wallet_service.wallet_summary(user["id"])
+
+
+@router.get("/referrals/summary")
+async def referrals_summary(user: dict = Depends(get_current_user)):
+    return await referral_service.summary(user)
 
 
 @router.get("/wallet/consistency")
