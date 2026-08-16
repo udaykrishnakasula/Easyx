@@ -17,6 +17,7 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection (shared single client)
 from db import client, db  # noqa: E402
 import auth_service  # noqa: E402
+import maturity_service  # noqa: E402
 from auth_router import router as auth_router  # noqa: E402
 from user_router import router as user_router  # noqa: E402
 from admin_router import router as admin_router  # noqa: E402
@@ -81,7 +82,12 @@ async def _startup():
     await auth_service.seed_admin()
     from migrations.runner import run_migrations
     await run_migrations(db)
-    logging.getLogger(__name__).info("Startup complete: indexes ensured, admin seeded, migrations applied.")
+    # Background automatic maturity engine (maturity payouts + 7/3/1-day reminders).
+    import asyncio
+    app.state.maturity_task = asyncio.create_task(maturity_service.scheduler_loop())
+    logging.getLogger(__name__).info(
+        "Startup complete: indexes ensured, admin seeded, migrations applied, maturity scheduler running."
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -100,4 +106,7 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    task = getattr(app.state, "maturity_task", None)
+    if task:
+        task.cancel()
     client.close()

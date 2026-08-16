@@ -1,14 +1,18 @@
-"""Minimal admin routes needed this phase: manual wallet adjustment (credit/debit).
+"""Admin routes: manual wallet adjustment + automatic-maturity operations.
 
-This supports admin platform control and lets funds enter a wallet (manual deposit
-verification is a later phase). Guarded by require_admin. All actions are ledgered.
+Guarded by require_admin. All wallet actions are ledgered. The maturity endpoints
+let an admin trigger the sweep on demand and (for ops/testing) backdate or
+force-mature a specific investment. All maturity operations remain idempotent.
 """
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
 
+import invest_service
+import maturity_service
 import wallet_service
 from db import db
 from deps import require_admin
@@ -38,3 +42,46 @@ async def adjust_wallet(payload: AdjustIn, admin: dict = Depends(require_admin))
         idempotency_key=key, note=payload.note or "Admin adjustment",
     )
     return wallet_service.serialize_tx(tx)
+
+
+@router.post("/maturity/run")
+async def maturity_run(admin: dict = Depends(require_admin)):
+    """Trigger the maturity sweep now (matures all ACTIVE investments past due)."""
+    return await maturity_service.run_maturity_sweep()
+
+
+@router.post("/maturity/reminders/run")
+async def maturity_reminders_run(admin: dict = Depends(require_admin)):
+    """Trigger the 7/3/1-day reminder sweep now."""
+    return await maturity_service.run_reminder_sweep()
+
+
+@router.post("/investments/{inv_id}/mature")
+async def force_mature(inv_id: str, admin: dict = Depends(require_admin)):
+    """Force-mature a specific investment immediately (idempotent — a second call
+    performs no additional payout)."""
+    inv = await db.investments.find_one({"id": inv_id})
+    if not inv:
+        return {"error": "investment_not_found"}
+    performed = await maturity_service.mature_investment(inv)
+    fresh = await db.investments.find_one({"id": inv_id})
+    return {"performed_payout": performed, "investment": invest_service.serialize_investment(fresh)}
+
+
+class BackdateIn(BaseModel):
+    seconds_ago: int = Field(default=1, ge=0, description="Set maturity_at this many seconds in the past")
+
+
+@router.post("/investments/{inv_id}/backdate")
+async def backdate_investment(inv_id: str, payload: BackdateIn, admin: dict = Depends(require_admin)):
+    """Ops/testing helper: move an investment's maturity_at into the past so the
+    automatic sweep will pick it up on its next run."""
+    inv = await db.investments.find_one({"id": inv_id})
+    if not inv:
+        return {"error": "investment_not_found"}
+    new_maturity = (datetime.now(timezone.utc) - timedelta(seconds=payload.seconds_ago)).isoformat()
+    await db.investments.update_one(
+        {"id": inv_id},
+        {"$set": {"maturity_at": new_maturity, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"ok": True, "maturity_at": new_maturity}

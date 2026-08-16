@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/context/AuthContext";
+import { useUnreadCount } from "@/features/dashboard/api";
 
 const NAV = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -23,7 +24,7 @@ const NAV = [
   { to: "/app/security", label: "Security", icon: Lock },
 ];
 
-function NavItems({ onNavigate }) {
+function NavItems({ onNavigate, unreadCount = 0 }) {
   return (
     <nav className="flex flex-col gap-1" data-testid="dashboard-nav">
       {NAV.map(({ to, label, icon: Icon }) => (
@@ -40,7 +41,15 @@ function NavItems({ onNavigate }) {
           }
         >
           <Icon className="h-4 w-4" />
-          {label}
+          <span className="flex-1">{label}</span>
+          {to === "/app/notifications" && unreadCount > 0 && (
+            <span
+              className="grid min-w-5 h-5 place-items-center rounded-full bg-ex-accent px-1.5 text-[11px] font-bold text-ex-ink"
+              data-testid="nav-unread-badge"
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
         </NavLink>
       ))}
     </nav>
@@ -60,6 +69,7 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [openMobile, setOpenMobile] = useState(false);
+  const { data: unreadCount = 0 } = useUnreadCount();
 
   const handleLogout = () => {
     logout();
@@ -80,7 +90,7 @@ export default function DashboardLayout() {
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 z-20 w-64 flex-col border-r border-white/8 bg-ex-surface2 p-4">
         <Brand />
-        <div className="mt-7 flex-1 overflow-y-auto pr-1"><NavItems /></div>
+        <div className="mt-7 flex-1 overflow-y-auto pr-1"><NavItems unreadCount={unreadCount} /></div>
         <button onClick={handleLogout} className="ex-btn ex-btn-ghost mt-4 h-11 w-full" data-testid="logout-button">
           <LogOut className="mr-2 h-4 w-4" /> Logout
         </button>
@@ -97,7 +107,7 @@ export default function DashboardLayout() {
           <SheetContent side="left" className="w-72 bg-ex-surface2 border-white/8 p-4 text-ex-text">
             <SheetTitle className="sr-only">EasyX navigation</SheetTitle>
             <Brand />
-            <div className="mt-7"><NavItems onNavigate={() => setOpenMobile(false)} /></div>
+            <div className="mt-7"><NavItems onNavigate={() => setOpenMobile(false)} unreadCount={unreadCount} /></div>
             <button onClick={handleLogout} className="ex-btn ex-btn-ghost mt-4 h-11 w-full">
               <LogOut className="mr-2 h-4 w-4" /> Logout
             </button>

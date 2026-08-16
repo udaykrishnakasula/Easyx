@@ -27,6 +27,44 @@ export function useTransactions() {
   });
 }
 
+export function useNotifications(unreadOnly = false) {
+  return useQuery({
+    queryKey: ["notifications", unreadOnly ? "unread" : "all"],
+    queryFn: async () =>
+      (await api.get("/notifications", { params: unreadOnly ? { unread_only: true } : {} })).data,
+  });
+}
+
+export function useUnreadCount() {
+  return useQuery({
+    queryKey: ["notifications-unread-count"],
+    queryFn: async () => (await api.get("/notifications/unread-count")).data.count,
+    refetchInterval: 60000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => (await api.post(`/notifications/${id}/read`)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+      qc.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => (await api.post("/notifications/read-all")).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+      qc.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+    },
+  });
+}
+
 export function useBuyPlan() {
   const qc = useQueryClient();
   return useMutation({

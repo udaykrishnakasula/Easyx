@@ -13,6 +13,7 @@ import InvestmentsPage from "@/features/investments/InvestmentsPage";
 import WalletPage from "@/features/wallet/WalletPage";
 import TransactionsPage from "@/features/transactions/TransactionsPage";
 import ProfilePage from "@/features/profile/ProfilePage";
+import NotificationsPage from "@/features/notifications/NotificationsPage";
 import ComingSoon from "@/features/common/ComingSoon";
 
 const Landing = () => (
@@ -50,7 +51,7 @@ function App() {
               <Route path="withdraw" element={<ComingSoon title="Withdraw" note="KYC-gated withdrawals with admin approval are coming soon." />} />
               <Route path="referral" element={<ComingSoon title="Referral" note="One-level referral rewards are coming soon." />} />
               <Route path="kyc" element={<ComingSoon title="KYC" note="Identity verification (ID + selfie) is coming soon." />} />
-              <Route path="notifications" element={<ComingSoon title="Notifications" note="Important account notifications will appear here." />} />
+              <Route path="notifications" element={<NotificationsPage />} />
               <Route path="security" element={<ComingSoon title="Security" note="Password change and session security controls are coming soon." />} />
             </Route>
 
