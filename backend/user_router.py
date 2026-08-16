@@ -107,6 +107,14 @@ async def transactions(limit: int = Query(default=50, le=200), skip: int = Query
     return await wallet_service.list_transactions(user["id"], limit=limit, skip=skip)
 
 
+@router.get("/rewards/feed")
+async def rewards_feed(limit: int = Query(default=30, le=100),
+                       since: Optional[str] = Query(default=None),
+                       user: dict = Depends(get_current_user)):
+    """Live activity feed of the user's rewards and payouts."""
+    return await wallet_service.list_rewards_feed(user["id"], limit=limit, since=since)
+
+
 @router.get("/notifications")
 async def notifications(unread_only: bool = Query(default=False),
                         limit: int = Query(default=50, le=200),

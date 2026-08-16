@@ -215,3 +215,42 @@ def serialize_tx(t: dict) -> dict:
 async def list_transactions(user_id: str, limit: int = 50, skip: int = 0):
     cur = db.wallet_transactions.find({"user_id": user_id}).sort("created_at", -1).skip(skip).limit(limit)
     return [serialize_tx(t) async for t in cur]
+
+
+# Transaction types that represent rewards (money earned) or payouts (money out)
+# surfaced in the live activity feed on the dashboard.
+REWARD_FEED_TYPES = [
+    "PROFIT",               # investment profit at maturity
+    "INVESTMENT_MATURITY",  # principal returned at maturity
+    "REFERRAL_COMMISSION",  # referral earnings
+    "WITHDRAWAL",           # payout to external address
+]
+
+
+def feed_category(tx_type: str) -> str:
+    """Classify a ledger entry for the live feed."""
+    if tx_type in ("PROFIT", "REFERRAL_COMMISSION"):
+        return "reward"
+    if tx_type == "INVESTMENT_MATURITY":
+        return "maturity"
+    if tx_type == "WITHDRAWAL":
+        return "payout"
+    return "other"
+
+
+async def list_rewards_feed(user_id: str, limit: int = 30, since: str | None = None):
+    """Return recent reward/payout ledger entries for the live activity feed.
+
+    `since` (ISO timestamp) enables incremental polling: only entries created
+    strictly after it are returned, so the client can append new items.
+    """
+    query = {"user_id": user_id, "type": {"$in": REWARD_FEED_TYPES}}
+    if since:
+        query["created_at"] = {"$gt": since}
+    cur = db.wallet_transactions.find(query).sort("created_at", -1).limit(limit)
+    items = []
+    async for t in cur:
+        tx = serialize_tx(t)
+        tx["category"] = feed_category(t["type"])
+        items.append(tx)
+    return items

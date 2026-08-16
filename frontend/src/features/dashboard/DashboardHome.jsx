@@ -3,6 +3,7 @@ import { Wallet as WalletIcon, TrendingUp, Layers } from "lucide-react";
 
 import { useDashboard, money } from "./api";
 import DashboardPlanCarousel from "./DashboardPlanCarousel";
+import RewardsFeed from "./RewardsFeed";
 import { EasyXStat, Eyebrow, EasyXLoader, EasyXEmptyState } from "@/design/EasyX";
 
 export default function DashboardHome() {
@@ -45,6 +46,9 @@ export default function DashboardHome() {
         <span className="text-xs text-ex-muted">1 card = 1 investment</span>
       </div>
       <DashboardPlanCarousel plans={plans} walletBalance={wallet.available_balance} userName={user.name} />
+
+      {/* Live rewards & payouts activity feed */}
+      <RewardsFeed />
     </div>
   );
 }

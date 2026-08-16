@@ -28,6 +28,15 @@ export function useTransactions() {
   });
 }
 
+export function useRewardsFeed() {
+  return useQuery({
+    queryKey: ["rewards-feed"],
+    queryFn: async () => (await api.get("/rewards/feed", { params: { limit: 30 } })).data,
+    refetchInterval: 8000, // near real-time polling
+    refetchIntervalInBackground: true,
+  });
+}
+
 export function useDepositConfig() {
   return useQuery({
     queryKey: ["deposit-config"],

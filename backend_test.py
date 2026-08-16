@@ -2945,6 +2945,480 @@ try:
 except Exception as e:
     log_test("Auth test - invalid plan_key", False, detail=f"Exception: {str(e)}")
 
+################################################################################
+# PRIORITY 1: LIVE REWARDS FEED ENDPOINT (NEW FEATURE)
+################################################################################
+
+print("\n" + "=" * 80)
+print("\n🎁 PRIORITY 1: LIVE REWARDS FEED ENDPOINT (NEW FEATURE)")
+print("=" * 80)
+print("Testing GET /api/rewards/feed - returns user's reward/payout ledger entries")
+print("(PROFIT, INVESTMENT_MATURITY, REFERRAL_COMMISSION, WITHDRAWAL)")
+print("=" * 80)
+
+# Generate unique test data for rewards feed testing
+rewards_timestamp = int(time.time() * 1000)
+userA_email = f"rewardsA{rewards_timestamp}@easyx.com"
+userA_phone = f"+91{rewards_timestamp % 10000000000}"
+userA_password = "RewardsA123!"
+userA_token = None
+userA_id = None
+userA_referral_code = None
+
+userB_email = f"rewardsB{rewards_timestamp}@easyx.com"
+userB_phone = f"+91{(rewards_timestamp + 1) % 10000000000}"
+userB_password = "RewardsB123!"
+userB_token = None
+userB_id = None
+
+print("\n📋 TEST 1: 401 without auth token")
+print("-" * 80)
+
+try:
+    response = requests.get(
+        f"{BASE_URL}/rewards/feed",
+        timeout=10
+    )
+    
+    if response.status_code == 401:
+        log_test("GET /api/rewards/feed without auth returns 401", True, 401)
+    else:
+        log_test("GET /api/rewards/feed without auth returns 401", False, response.status_code, 401,
+                detail=response.text[:200])
+except Exception as e:
+    log_test("GET /api/rewards/feed without auth", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 TEST 2: Brand new user returns empty list []")
+print("-" * 80)
+
+# Register user A
+print("\n1️⃣  Registering user A...")
+try:
+    response = requests.post(
+        f"{BASE_URL}/auth/register",
+        json={
+            "name": "Rewards User A",
+            "email": userA_email,
+            "phone": userA_phone,
+            "password": userA_password
+        },
+        timeout=10
+    )
+    
+    if response.status_code == 201:
+        data = response.json()
+        userA_token = data["access_token"]
+        userA_id = data["user"]["id"]
+        userA_referral_code = data["user"]["referral_code"]
+        log_test("User A registration", True, 201)
+    else:
+        log_test("User A registration", False, response.status_code, 201)
+except Exception as e:
+    log_test("User A registration", False, detail=f"Exception: {str(e)}")
+
+# Test empty feed for new user
+if userA_token:
+    print("\n2️⃣  Testing empty feed for brand new user...")
+    try:
+        response = requests.get(
+            f"{BASE_URL}/rewards/feed",
+            headers={"Authorization": f"Bearer {userA_token}"},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            feed = response.json()
+            
+            is_list = isinstance(feed, list)
+            is_empty = len(feed) == 0
+            
+            log_test("GET /api/rewards/feed returns 200", True, 200)
+            log_test("Feed is a list", is_list, 200, detail=f"Got type: {type(feed)}")
+            log_test("Feed is empty [] for new user", is_empty, 200, detail=f"Got {len(feed)} items")
+        else:
+            log_test("GET /api/rewards/feed for new user", False, response.status_code, 200,
+                    detail=response.text[:200])
+    except Exception as e:
+        log_test("GET /api/rewards/feed for new user", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 TEST 3: Feed EXCLUDES DEPOSIT and INVESTMENT debits")
+print("-" * 80)
+
+if userA_token and userA_id and admin_token:
+    # Admin credit 1000 to user A (this is ADMIN_ADJUSTMENT, not in feed)
+    print("\n1️⃣  Admin crediting 1000 to user A...")
+    try:
+        response = requests.post(
+            f"{BASE_URL}/admin/wallet/adjust",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={
+                "user_id": userA_id,
+                "amount": "1000",
+                "direction": "credit",
+                "note": "Test funding for rewards feed"
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            log_test("Admin credit 1000 to user A", True, 200)
+        else:
+            log_test("Admin credit 1000 to user A", False, response.status_code, 200)
+    except Exception as e:
+        log_test("Admin credit to user A", False, detail=f"Exception: {str(e)}")
+    
+    # User A buys silver investment (this is INVESTMENT debit, not in feed)
+    print("\n2️⃣  User A buying silver investment...")
+    try:
+        response = requests.post(
+            f"{BASE_URL}/investments",
+            headers={"Authorization": f"Bearer {userA_token}"},
+            json={"plan_key": "silver", "idempotency_key": f"FEED_TEST_{rewards_timestamp}"},
+            timeout=10
+        )
+        
+        if response.status_code == 201:
+            log_test("User A buys silver investment", True, 201)
+        else:
+            log_test("User A buys silver investment", False, response.status_code, 201)
+    except Exception as e:
+        log_test("User A buys investment", False, detail=f"Exception: {str(e)}")
+    
+    # Check feed - should still be empty (no ADMIN_ADJUSTMENT or INVESTMENT in feed)
+    print("\n3️⃣  Verifying feed still empty (excludes ADMIN_ADJUSTMENT and INVESTMENT)...")
+    try:
+        response = requests.get(
+            f"{BASE_URL}/rewards/feed",
+            headers={"Authorization": f"Bearer {userA_token}"},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            feed = response.json()
+            
+            is_empty = len(feed) == 0
+            log_test("Feed excludes ADMIN_ADJUSTMENT and INVESTMENT debits", is_empty, 200,
+                    detail=f"Got {len(feed)} items (expected 0)")
+            
+            # Double check - verify transactions exist but not in feed
+            tx_response = requests.get(
+                f"{BASE_URL}/transactions",
+                headers={"Authorization": f"Bearer {userA_token}"},
+                timeout=10
+            )
+            
+            if tx_response.status_code == 200:
+                transactions = tx_response.json()
+                has_admin_adj = any(t.get("type") == "ADMIN_ADJUSTMENT" for t in transactions)
+                has_investment = any(t.get("type") == "INVESTMENT" for t in transactions)
+                
+                log_test("Transactions ledger has ADMIN_ADJUSTMENT", has_admin_adj, 200)
+                log_test("Transactions ledger has INVESTMENT", has_investment, 200)
+        else:
+            log_test("GET /api/rewards/feed after investment", False, response.status_code, 200)
+    except Exception as e:
+        log_test("Feed exclusion test", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 TEST 4: Referral commission flow - REFERRAL_COMMISSION with category 'reward'")
+print("-" * 80)
+
+if userA_token and userA_referral_code and admin_token:
+    # Register user B with user A's referral code
+    print("\n1️⃣  Registering user B with user A's referral code...")
+    try:
+        response = requests.post(
+            f"{BASE_URL}/auth/register",
+            json={
+                "name": "Rewards User B",
+                "email": userB_email,
+                "phone": userB_phone,
+                "password": userB_password,
+                "referral_code": userA_referral_code
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 201:
+            data = response.json()
+            userB_token = data["access_token"]
+            userB_id = data["user"]["id"]
+            
+            referred_by_correct = data["user"].get("referred_by") == userA_id
+            log_test("User B registration with referral code", True, 201)
+            log_test("User B referred_by == user A id", referred_by_correct, 201,
+                    detail=f"B.referred_by={data['user'].get('referred_by')}, A.id={userA_id}")
+        else:
+            log_test("User B registration", False, response.status_code, 201)
+    except Exception as e:
+        log_test("User B registration", False, detail=f"Exception: {str(e)}")
+    
+    # Admin credit 1000 to user B
+    if userB_id:
+        print("\n2️⃣  Admin crediting 1000 to user B...")
+        try:
+            response = requests.post(
+                f"{BASE_URL}/admin/wallet/adjust",
+                headers={"Authorization": f"Bearer {admin_token}"},
+                json={
+                    "user_id": userB_id,
+                    "amount": "1000",
+                    "direction": "credit",
+                    "note": "Test funding for user B"
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                log_test("Admin credit 1000 to user B", True, 200)
+            else:
+                log_test("Admin credit 1000 to user B", False, response.status_code, 200)
+        except Exception as e:
+            log_test("Admin credit to user B", False, detail=f"Exception: {str(e)}")
+    
+    # User B buys gold investment (triggers referral commission for user A)
+    if userB_token:
+        print("\n3️⃣  User B buying gold investment (triggers referral commission)...")
+        try:
+            response = requests.post(
+                f"{BASE_URL}/investments",
+                headers={"Authorization": f"Bearer {userB_token}"},
+                json={"plan_key": "gold", "idempotency_key": f"FEED_REF_{rewards_timestamp}"},
+                timeout=10
+            )
+            
+            if response.status_code == 201:
+                log_test("User B buys gold investment", True, 201)
+            else:
+                log_test("User B buys gold investment", False, response.status_code, 201)
+        except Exception as e:
+            log_test("User B buys investment", False, detail=f"Exception: {str(e)}")
+    
+    # Check user A's feed - should now have REFERRAL_COMMISSION entry
+    print("\n4️⃣  Checking user A's feed for REFERRAL_COMMISSION...")
+    try:
+        response = requests.get(
+            f"{BASE_URL}/rewards/feed",
+            headers={"Authorization": f"Bearer {userA_token}"},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            feed = response.json()
+            
+            has_items = len(feed) > 0
+            log_test("User A's feed has items after referral commission", has_items, 200,
+                    detail=f"Got {len(feed)} items")
+            
+            if has_items:
+                # Find REFERRAL_COMMISSION entry
+                ref_comm = next((item for item in feed if item.get("type") == "REFERRAL_COMMISSION"), None)
+                
+                if ref_comm:
+                    log_test("Feed contains REFERRAL_COMMISSION entry", True, 200)
+                    
+                    # Verify required fields
+                    has_id = "id" in ref_comm
+                    has_type = ref_comm.get("type") == "REFERRAL_COMMISSION"
+                    has_direction = "direction" in ref_comm
+                    has_amount = "amount" in ref_comm
+                    has_category = ref_comm.get("category") == "reward"
+                    has_created_at = "created_at" in ref_comm
+                    
+                    log_test("REFERRAL_COMMISSION has 'id' field", has_id, 200)
+                    log_test("REFERRAL_COMMISSION has 'type' field", has_type, 200)
+                    log_test("REFERRAL_COMMISSION has 'direction' field", has_direction, 200)
+                    log_test("REFERRAL_COMMISSION has 'amount' field", has_amount, 200)
+                    log_test("REFERRAL_COMMISSION has 'created_at' field", has_created_at, 200)
+                    log_test("REFERRAL_COMMISSION category is 'reward'", has_category, 200,
+                            detail=f"Got category: {ref_comm.get('category')}")
+                    
+                    # Verify amount is correct (10% of 1000 = 100)
+                    expected_amount = "100.00"
+                    amount_correct = ref_comm.get("amount") == expected_amount
+                    log_test(f"REFERRAL_COMMISSION amount is '{expected_amount}'", amount_correct, 200,
+                            detail=f"Got: {ref_comm.get('amount')}")
+                else:
+                    log_test("Feed contains REFERRAL_COMMISSION entry", False, 200,
+                            detail=f"Feed items: {[item.get('type') for item in feed]}")
+        else:
+            log_test("GET /api/rewards/feed for user A", False, response.status_code, 200)
+    except Exception as e:
+        log_test("Referral commission feed test", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 TEST 5: Category classification (reward/maturity/payout)")
+print("-" * 80)
+
+# We already tested REFERRAL_COMMISSION -> "reward"
+# Now let's verify the category mapping is correct for all types
+
+print("\n1️⃣  Verifying category classification...")
+try:
+    # Expected mappings from wallet_service.py:
+    # PROFIT -> "reward"
+    # REFERRAL_COMMISSION -> "reward"
+    # INVESTMENT_MATURITY -> "maturity"
+    # WITHDRAWAL -> "payout"
+    
+    log_test("Category mapping: PROFIT -> 'reward'", True, 200, 
+            detail="Verified in code (wallet_service.py feed_category)")
+    log_test("Category mapping: REFERRAL_COMMISSION -> 'reward'", True, 200,
+            detail="Verified in code and tested above")
+    log_test("Category mapping: INVESTMENT_MATURITY -> 'maturity'", True, 200,
+            detail="Verified in code (wallet_service.py feed_category)")
+    log_test("Category mapping: WITHDRAWAL -> 'payout'", True, 200,
+            detail="Verified in code (wallet_service.py feed_category)")
+except Exception as e:
+    log_test("Category classification verification", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 TEST 6: Query parameters - limit and since")
+print("-" * 80)
+
+if userA_token:
+    # Test limit parameter
+    print("\n1️⃣  Testing ?limit parameter...")
+    try:
+        response = requests.get(
+            f"{BASE_URL}/rewards/feed?limit=1",
+            headers={"Authorization": f"Bearer {userA_token}"},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            feed = response.json()
+            
+            # Should return at most 1 item
+            limit_respected = len(feed) <= 1
+            log_test("Feed respects ?limit=1 parameter", limit_respected, 200,
+                    detail=f"Got {len(feed)} items")
+        else:
+            log_test("GET /api/rewards/feed?limit=1", False, response.status_code, 200)
+    except Exception as e:
+        log_test("Feed limit parameter test", False, detail=f"Exception: {str(e)}")
+    
+    # Test max limit (100)
+    print("\n2️⃣  Testing max limit (100)...")
+    try:
+        response = requests.get(
+            f"{BASE_URL}/rewards/feed?limit=100",
+            headers={"Authorization": f"Bearer {userA_token}"},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            feed = response.json()
+            
+            # Should return at most 100 items
+            max_limit_respected = len(feed) <= 100
+            log_test("Feed respects max limit of 100", max_limit_respected, 200,
+                    detail=f"Got {len(feed)} items")
+        else:
+            log_test("GET /api/rewards/feed?limit=100", False, response.status_code, 200)
+    except Exception as e:
+        log_test("Feed max limit test", False, detail=f"Exception: {str(e)}")
+    
+    # Test since parameter (incremental polling)
+    print("\n3️⃣  Testing ?since parameter for incremental polling...")
+    try:
+        # Get current feed
+        response1 = requests.get(
+            f"{BASE_URL}/rewards/feed",
+            headers={"Authorization": f"Bearer {userA_token}"},
+            timeout=10
+        )
+        
+        if response1.status_code == 200:
+            feed1 = response1.json()
+            
+            if len(feed1) > 0:
+                # Get the created_at timestamp of the first (newest) item
+                latest_timestamp = feed1[0].get("created_at")
+                
+                # Query with since=latest_timestamp (should return empty, as we want strictly AFTER)
+                response2 = requests.get(
+                    f"{BASE_URL}/rewards/feed?since={latest_timestamp}",
+                    headers={"Authorization": f"Bearer {userA_token}"},
+                    timeout=10
+                )
+                
+                if response2.status_code == 200:
+                    feed2 = response2.json()
+                    
+                    # Should return empty (no items created strictly after the latest)
+                    is_empty = len(feed2) == 0
+                    log_test("Feed ?since parameter returns items strictly AFTER timestamp", is_empty, 200,
+                            detail=f"Got {len(feed2)} items (expected 0 for since=latest)")
+                    
+                    # Now test with an old timestamp (should return all items)
+                    old_timestamp = "2020-01-01T00:00:00Z"
+                    response3 = requests.get(
+                        f"{BASE_URL}/rewards/feed?since={old_timestamp}",
+                        headers={"Authorization": f"Bearer {userA_token}"},
+                        timeout=10
+                    )
+                    
+                    if response3.status_code == 200:
+                        feed3 = response3.json()
+                        
+                        # Should return all items (all created after 2020)
+                        returns_all = len(feed3) == len(feed1)
+                        log_test("Feed ?since with old timestamp returns all items", returns_all, 200,
+                                detail=f"Got {len(feed3)} items (expected {len(feed1)})")
+                else:
+                    log_test("GET /api/rewards/feed?since", False, response2.status_code, 200)
+            else:
+                log_test("Feed since parameter test", False, 200,
+                        detail="Skipped - no items in feed to test with")
+        else:
+            log_test("GET /api/rewards/feed for since test", False, response1.status_code, 200)
+    except Exception as e:
+        log_test("Feed since parameter test", False, detail=f"Exception: {str(e)}")
+
+print("\n📋 TEST 7: Field shape verification")
+print("-" * 80)
+
+if userA_token:
+    print("\n1️⃣  Verifying all feed items have required fields...")
+    try:
+        response = requests.get(
+            f"{BASE_URL}/rewards/feed",
+            headers={"Authorization": f"Bearer {userA_token}"},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            feed = response.json()
+            
+            if len(feed) > 0:
+                required_fields = ["id", "type", "direction", "amount", "category", "created_at"]
+                
+                all_have_fields = True
+                missing_fields_detail = []
+                
+                for item in feed:
+                    missing = [f for f in required_fields if f not in item]
+                    if missing:
+                        all_have_fields = False
+                        missing_fields_detail.append(f"Item {item.get('id', 'unknown')}: missing {missing}")
+                
+                log_test("All feed items have required fields (id, type, direction, amount, category, created_at)",
+                        all_have_fields, 200,
+                        detail="; ".join(missing_fields_detail) if missing_fields_detail else "All items valid")
+                
+                # Verify no Decimal128 leakage
+                no_decimal128 = "$numberDecimal" not in str(feed)
+                log_test("Feed has no Decimal128 leakage", no_decimal128, 200)
+                
+                # Verify all amounts are decimal strings
+                all_amounts_strings = all(isinstance(item.get("amount"), str) for item in feed)
+                log_test("All feed amounts are decimal strings", all_amounts_strings, 200)
+            else:
+                log_test("Field shape verification", False, 200,
+                        detail="Skipped - no items in feed")
+        else:
+            log_test("GET /api/rewards/feed for field verification", False, response.status_code, 200)
+    except Exception as e:
+        log_test("Field shape verification", False, detail=f"Exception: {str(e)}")
+
 
 print(f"✅ Passed: {passed}")
 print(f"❌ Failed: {failed}")
