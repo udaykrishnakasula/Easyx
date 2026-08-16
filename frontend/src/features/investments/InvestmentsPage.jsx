@@ -1,13 +1,14 @@
 import React from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import { PiggyBank } from "lucide-react";
+import { PiggyBank, ChevronRight } from "lucide-react";
 
 import { useInvestments, money } from "@/features/dashboard/api";
 import { PageHeading, EasyXCard, EasyXStatusBadge, EasyXLoader, EasyXEmptyState } from "@/design/EasyX";
 
 export default function InvestmentsPage() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const planKey = params.get("plan") || undefined;
   const { data, isLoading } = useInvestments(planKey);
 
@@ -15,7 +16,7 @@ export default function InvestmentsPage() {
     <div data-testid="investments-page">
       <PageHeading
         title={`Investments${planKey ? ` — ${planKey}` : ""}`}
-        subtitle="Each card is a separate investment."
+        subtitle="Each card is a separate investment. Tap to view full details."
         icon={PiggyBank}
       />
 
@@ -28,7 +29,16 @@ export default function InvestmentsPage() {
       ) : (
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           {data.map((inv) => (
-            <EasyXCard key={inv.id} hover data-testid={`investment-${inv.id}`}>
+            <EasyXCard
+              key={inv.id}
+              hover
+              onClick={() => navigate(`/app/investments/${inv.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter") navigate(`/app/investments/${inv.id}`); }}
+              className="cursor-pointer"
+              data-testid={`investment-${inv.id}`}
+            >
               <div className="flex items-center justify-between">
                 <span className="ex-eyebrow">{inv.plan_name}</span>
                 <EasyXStatusBadge status={inv.status} />
@@ -42,7 +52,12 @@ export default function InvestmentsPage() {
                 <Cell label="Lock period" value={`${inv.lock_days} days`} />
                 <Cell label="Remaining" value={inv.status === "active" ? `${inv.remaining_days} days` : "—"} />
               </div>
-              <div className="mt-3 text-[11px] text-ex-muted/60">ID: {inv.id}</div>
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-[11px] text-ex-muted/60">ID: {inv.id}</span>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-ex-accent" data-testid="investment-view-details">
+                  View details <ChevronRight className="h-3.5 w-3.5" />
+                </span>
+              </div>
             </EasyXCard>
           ))}
         </div>

@@ -21,6 +21,14 @@ export function useInvestments(planKey) {
   });
 }
 
+export function useInvestment(id) {
+  return useQuery({
+    queryKey: ["investment", id],
+    queryFn: async () => (await api.get(`/investments/${id}`)).data,
+    enabled: !!id,
+  });
+}
+
 export function useTransactions() {
   return useQuery({
     queryKey: ["transactions"],

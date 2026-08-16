@@ -10,6 +10,7 @@ import RegisterPage from "@/features/auth/RegisterPage";
 import DashboardLayout from "@/features/dashboard/DashboardLayout";
 import DashboardHome from "@/features/dashboard/DashboardHome";
 import InvestmentsPage from "@/features/investments/InvestmentsPage";
+import InvestmentDetailPage from "@/features/investments/InvestmentDetailPage";
 import WalletPage from "@/features/wallet/WalletPage";
 import TransactionsPage from "@/features/transactions/TransactionsPage";
 import ProfilePage from "@/features/profile/ProfilePage";
@@ -59,6 +60,7 @@ function App() {
               <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardHome />} />
               <Route path="investments" element={<InvestmentsPage />} />
+              <Route path="investments/:id" element={<InvestmentDetailPage />} />
               <Route path="wallet" element={<WalletPage />} />
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="profile" element={<ProfilePage />} />

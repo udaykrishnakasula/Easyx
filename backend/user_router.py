@@ -54,6 +54,11 @@ async def investments(plan_key: Optional[str] = Query(default=None),
     return await invest_service.list_investments(user["id"], plan_key)
 
 
+@router.get("/investments/{investment_id}")
+async def investment_detail(investment_id: str, user: dict = Depends(get_current_user)):
+    return await invest_service.get_investment(user["id"], investment_id)
+
+
 @router.get("/deposits/config")
 async def deposits_config(user: dict = Depends(get_current_user)):
     return await deposit_service.get_config()

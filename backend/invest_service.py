@@ -68,6 +68,8 @@ def serialize_investment(inv: dict) -> dict:
         "principal": fmt(inv["principal"]),
         "profit_amount": fmt(inv["profit_amount"]),
         "maturity_amount": fmt(inv["maturity_amount"]),
+        "profit_percentage": fmt(inv["profit_percentage_snapshot"]) if inv.get("profit_percentage_snapshot") is not None else None,
+        "maturity_percentage": fmt(inv["maturity_percentage_snapshot"]) if inv.get("maturity_percentage_snapshot") is not None else None,
         "lock_days": inv.get("lock_days_snapshot"),
         "status": inv["status"],
         "source": inv.get("source"),
@@ -181,6 +183,20 @@ async def list_investments(user_id: str, plan_key: str | None = None):
         q["plan_key"] = plan_key
     cur = db.investments.find(q).sort("created_at", -1)
     return [serialize_investment(i) async for i in cur]
+
+
+async def get_investment(user_id: str, investment_id: str) -> dict:
+    """Return a single investment owned by the user. 404 if not found.
+
+    Each investment is fully independent — its own principal, dates and
+    maturity are returned exactly as snapshotted at purchase time.
+    """
+    inv = await db.investments.find_one(
+        {"id": investment_id, "user_id": user_id, "status": {"$ne": "pending"}}
+    )
+    if not inv:
+        raise HTTPException(status_code=404, detail="Investment not found.")
+    return serialize_investment(inv)
 
 
 async def admin_list_investments(status_filter: str | None = None, q: str | None = None, limit: int = 200):
