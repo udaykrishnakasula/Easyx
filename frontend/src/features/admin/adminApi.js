@@ -85,3 +85,76 @@ export function useAdminReferrals() {
     refetchInterval: 30000,
   });
 }
+
+/* ------------------------- Users (view / suspend) ------------------------- */
+export function useAdminUsers({ status, q } = {}) {
+  return useQuery({
+    queryKey: ["admin-users", status || "all", q || ""],
+    queryFn: async () => {
+      const params = {};
+      if (status) params.status = status;
+      if (q) params.q = q;
+      return (await api.get("/admin/users", { params })).data;
+    },
+    refetchInterval: 30000,
+  });
+}
+
+export function useSuspendUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }) =>
+      (await api.post(`/admin/users/${id}/suspend`, { reason })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+}
+
+export function useUnsuspendUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }) => (await api.post(`/admin/users/${id}/unsuspend`)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+}
+
+/* ------------------------- Maintenance mode ------------------------- */
+export function useAdminMaintenance() {
+  return useQuery({
+    queryKey: ["admin-maintenance"],
+    queryFn: async () => (await api.get("/admin/maintenance")).data,
+  });
+}
+
+export function useSaveMaintenance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch) => (await api.put("/admin/maintenance", patch)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-maintenance"] });
+      qc.invalidateQueries({ queryKey: ["public-maintenance"] });
+    },
+  });
+}
+
+/* ------------------------- Audit logs ------------------------- */
+export function useAdminAuditLogs({ action, entity_type } = {}) {
+  return useQuery({
+    queryKey: ["admin-audit-logs", action || "all", entity_type || "all"],
+    queryFn: async () => {
+      const params = {};
+      if (action) params.action = action;
+      if (entity_type) params.entity_type = entity_type;
+      return (await api.get("/admin/audit-logs", { params })).data;
+    },
+    refetchInterval: 30000,
+  });
+}
+
+/* Public maintenance status (no auth) — used by auth screens. */
+export function usePublicMaintenance() {
+  return useQuery({
+    queryKey: ["public-maintenance"],
+    queryFn: async () => (await api.get("/maintenance")).data,
+    refetchInterval: 60000,
+  });
+}

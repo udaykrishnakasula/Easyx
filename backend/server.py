@@ -46,6 +46,13 @@ class StatusCheckCreate(BaseModel):
 async def root():
     return {"message": "Hello World"}
 
+
+@api_router.get("/maintenance")
+async def public_maintenance():
+    """Public maintenance status for login/register screens (no auth)."""
+    import maintenance_service
+    return await maintenance_service.public()
+
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
     status_dict = input.model_dump()

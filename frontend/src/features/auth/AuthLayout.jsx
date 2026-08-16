@@ -1,9 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { AlertTriangle } from "lucide-react";
+
+import { usePublicMaintenance } from "@/features/admin/adminApi";
 
 // Shared shell for the auth screens. Uses the EasyX design tokens so signup/login
 // feel like the same product as the landing page and the dashboard.
 export default function AuthLayout({ title, subtitle, children, footer }) {
+  const { data: maintenance } = usePublicMaintenance();
+  const showBanner =
+    maintenance && (maintenance.is_enabled || maintenance.features?.registration === false);
+
   return (
     <div className="ex-app-bg min-h-screen w-full relative overflow-hidden">
       <div
@@ -21,6 +28,15 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
               <span className="ex-display text-2xl font-extrabold tracking-tight">Easyx</span>
             </Link>
           </div>
+          {showBanner ? (
+            <div
+              className="mb-5 flex items-start gap-2 rounded-ex-ctrl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-xs text-amber-200"
+              data-testid="auth-maintenance-banner"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{maintenance.message}</span>
+            </div>
+          ) : null}
           <div className="ex-surface p-6 sm:p-8 shadow-2xl">
             <h1 className="ex-display text-2xl font-bold">{title}</h1>
             {subtitle ? <p className="mt-1 text-sm text-ex-muted">{subtitle}</p> : null}

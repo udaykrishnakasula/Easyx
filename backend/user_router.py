@@ -8,6 +8,7 @@ import deposit_service
 import notify_service
 import referral_service
 import wallet_service
+import maintenance_service
 from deps import get_current_user
 
 router = APIRouter(prefix="/api", tags=["user"])
@@ -36,6 +37,7 @@ async def plans(user: dict = Depends(get_current_user)):
 
 @router.post("/investments", status_code=201)
 async def buy_investment(payload: BuyIn, user: dict = Depends(get_current_user)):
+    await maintenance_service.ensure_allowed("investments")
     return await invest_service.buy_plan(user, payload.plan_key, payload.idempotency_key)
 
 
@@ -52,6 +54,7 @@ async def deposits_config(user: dict = Depends(get_current_user)):
 
 @router.post("/deposits", status_code=201)
 async def create_deposit(payload: DepositIn, user: dict = Depends(get_current_user)):
+    await maintenance_service.ensure_allowed("deposits")
     return await deposit_service.create_deposit(user["id"], payload.network, payload.amount, payload.tx_hash)
 
 

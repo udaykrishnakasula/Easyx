@@ -18,6 +18,8 @@ import DepositPage from "@/features/deposit/DepositPage";
 import ReferralPage from "@/features/referral/ReferralPage";
 import KYCPage from "@/features/kyc/KYCPage";
 import AdminLayout from "@/features/admin/AdminLayout";
+import AdminUsersPage from "@/features/admin/AdminUsersPage";
+import AdminMaintenancePage from "@/features/admin/AdminMaintenancePage";
 import AdminDepositsPage from "@/features/admin/AdminDepositsPage";
 import AdminKycPage from "@/features/admin/AdminKycPage";
 import AdminReferralsPage from "@/features/admin/AdminReferralsPage";
@@ -71,10 +73,12 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<Navigate to="/admin/deposits" replace />} />
+              <Route index element={<Navigate to="/admin/users" replace />} />
+              <Route path="users" element={<AdminUsersPage />} />
               <Route path="deposits" element={<AdminDepositsPage />} />
               <Route path="kyc" element={<AdminKycPage />} />
               <Route path="referrals" element={<AdminReferralsPage />} />
+              <Route path="maintenance" element={<AdminMaintenancePage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
             </Route>
 

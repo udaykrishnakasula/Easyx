@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends
 
 import auth_service
+import maintenance_service
 from deps import get_current_user
 from schemas import LoginIn, RegisterIn, TokenOut, UserOut
 from security import create_access_token
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/register", response_model=TokenOut, status_code=201)
 async def register(payload: RegisterIn):
+    await maintenance_service.ensure_allowed("registration")
     user = await auth_service.register_user(
         name=payload.name,
         email=payload.email,

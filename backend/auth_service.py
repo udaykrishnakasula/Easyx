@@ -128,8 +128,8 @@ async def authenticate_user(email: str, password: str) -> dict:
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(password, user.get("password_hash", "")):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password.")
-    if user.get("status") == "banned":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This account has been suspended.")
+    if user.get("status") in ("banned", "suspended"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This account has been suspended. Please contact support.")
     if REQUIRE_EMAIL_VERIFICATION and not user.get("email_verified", False):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Please verify your email before logging in.")
     await db.users.update_one({"id": user["id"]}, {"$set": {"last_login_at": _now_iso()}})
