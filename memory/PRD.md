@@ -135,3 +135,23 @@ desktop & mobile, no horizontal overflow, mobile-viewport-stable (svh/dvh).
 ## Backlog (requested)
 - Withdrawal system with Email OTP (Resend) — BLOCKED on RESEND_API_KEY from user.
 - Admin Referral View (read-only list of relationships + commissions paid).
+
+---
+
+## Admin: Account Suspension + Maintenance Mode (added)
+
+### Account Suspension
+- Admin can suspend/reactivate any non-admin user from `/admin/users` (list, status filters, search).
+- Suspended user: cannot log in and cannot use ANY account function (all Bearer-protected routes return 403). Suspend requires a reason.
+- Existing ACTIVE investments keep running toward normal maturity — suspension never cancels them. Wallet/maturity engine unaffected.
+- Admins cannot be suspended.
+- Endpoints: `GET /api/admin/users`, `GET /api/admin/users/{id}`, `POST /api/admin/users/{id}/suspend` {reason}, `POST /api/admin/users/{id}/unsuspend`.
+
+### Maintenance Mode
+- Global maintenance toggle + per-feature switches (registration, deposits, investments, withdrawals) at `/admin/maintenance`, with an admin-editable message.
+- Global ON blocks all four user-facing writes (503 + message); individual switches disable a single feature. Existing investments, maturity engine and wallet balances are never affected. Admin login always works.
+- Public status: `GET /api/maintenance` (no auth) → drives amber banner on login/register screens.
+- Endpoints: `GET/PUT /api/admin/maintenance`.
+
+### Audit Logs
+- All admin mutations (suspend/unsuspend, wallet adjust, maintenance changes) append immutable records to `audit_logs`. Read via `GET /api/admin/audit-logs`.
