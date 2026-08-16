@@ -155,3 +155,23 @@ desktop & mobile, no horizontal overflow, mobile-viewport-stable (svh/dvh).
 
 ### Audit Logs
 - All admin mutations (suspend/unsuspend, wallet adjust, maintenance changes) append immutable records to `audit_logs`. Read via `GET /api/admin/audit-logs`.
+
+---
+
+## Admin: Overview, Plan Editor, Investment Cancel, Withdrawals (added)
+
+### Admin Overview (/admin/overview)
+- KPI dashboard (GET /api/admin/overview): users(total/active/suspended), platform liabilities (available + locked), investments(active/matured/cancelled + active principal), pending deposits + approved total, withdrawals(pending/approved/paid total), pending KYC, referral commissions paid.
+
+### Investment Plan Editor (/admin/plans)
+- Edit price, profit %, maturity %, lock days, active state per plan. Each save bumps a version and appends a before/after record to plan_history (viewable). Existing investments retain their original snapshotted terms (unaffected).
+- Endpoints: GET /api/admin/plans, PUT /api/admin/plans/{key}, GET /api/admin/plans/{key}/history.
+
+### Investment Cancel + Refund (/admin/investments)
+- Admin cancels an ACTIVE investment with a chosen refund amount (0..principal) and a required reason. Profit is NEVER paid; already-paid referral commission is NOT reversed. Atomic active->cancelled flip (safe vs maturity engine). Refund credited to wallet as REFUND. Audit logged.
+- Endpoints: GET /api/admin/investments, POST /api/admin/investments/{id}/cancel {refund_amount, reason}.
+
+### Withdrawals (user + admin)
+- User (/app/withdraw): KYC-approved only. Requests debit/hold funds from available balance immediately (min 10 USDT, TRC20/BEP20). Maintenance-gated. GET /api/withdrawals/config, GET/POST /api/withdrawals.
+- Admin (/admin/withdrawals): Approve, Reject (refunds held amount via WITHDRAWAL_REVERSAL), Process (records blockchain TX hash -> paid). Audit logged.
+- Endpoints: GET /api/admin/withdrawals, POST /api/admin/withdrawals/{id}/{approve|reject|process}.
