@@ -5,6 +5,7 @@
   plan edits never mutate existing investments.
 - Buying debits the wallet atomically & idempotently (backend source of truth).
 """
+import asyncio
 import math
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -115,10 +116,19 @@ async def buy_plan(user: dict, plan_key: str, idempotency_key: str | None = None
     try:
         await db.investments.insert_one(inv_doc)
     except DuplicateKeyError:
-        prior = await db.investments.find_one({"idempotency_key": inv_key, "user_id": user_id})
+        # A concurrent request with the SAME idempotency_key won the insert race.
+        # Return that single investment. Retry the read briefly to tolerate the
+        # tiny window before the winning insert is visible, so we never surface a
+        # 500 for a duplicate/retried request (spec: idempotent, no double-spend).
+        prior = None
+        for _ in range(10):
+            prior = await db.investments.find_one({"idempotency_key": inv_key, "user_id": user_id})
+            if prior:
+                break
+            await asyncio.sleep(0.05)
         if prior:
             return serialize_investment(prior)
-        raise
+        raise HTTPException(status_code=409, detail="Duplicate request in progress, please retry.")
 
     # Debit wallet (atomic, idempotent). Roll back the pending investment on failure.
     try:

@@ -30,8 +30,11 @@ export function useTransactions() {
 export function useBuyPlan() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ planKey }) => {
+    mutationFn: async ({ planKey, idempotencyKey }) => {
+      // A STABLE key per purchase intent guarantees double-click / retry /
+      // refresh of the SAME intent collapses to one investment on the backend.
       const idempotency_key =
+        idempotencyKey ||
         (window.crypto && window.crypto.randomUUID && window.crypto.randomUUID()) ||
         `${planKey}-${Date.now()}-${Math.random()}`;
       return (await api.post("/investments", { plan_key: planKey, idempotency_key })).data;

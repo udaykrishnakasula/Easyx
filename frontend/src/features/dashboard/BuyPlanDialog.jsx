@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Lock, Check } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,9 +12,23 @@ export default function BuyPlanDialog({ plan, open, onOpenChange, walletBalance 
   const available = Number(walletBalance ?? 0);
   const insufficient = available < price;
 
+  // One stable idempotency key per purchase INTENT (per dialog open). Any
+  // double-click / retry / refresh of this same intent reuses the key so the
+  // backend returns the single already-created investment instead of a duplicate.
+  // Opening the dialog again mints a fresh key -> an additional investment is allowed.
+  const idempotencyRef = useRef(null);
+  useEffect(() => {
+    if (open) {
+      idempotencyRef.current =
+        (window.crypto && window.crypto.randomUUID && window.crypto.randomUUID()) ||
+        `${plan.key}-${Date.now()}-${Math.random()}`;
+    }
+  }, [open, plan.key]);
+
   const onBuy = async () => {
+    if (buy.isPending) return; // extra guard against rapid double submit
     try {
-      await buy.mutateAsync({ planKey: plan.key });
+      await buy.mutateAsync({ planKey: plan.key, idempotencyKey: idempotencyRef.current });
       toast.success(`Purchased 1 ${plan.name} card for ${money(plan.price)}`);
       onOpenChange(false);
     } catch (err) {

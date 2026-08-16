@@ -1857,6 +1857,1095 @@ if phase5_user_token and phase5_user_id:
 print("\n" + "=" * 80)
 print("\n📊 TEST SUMMARY")
 print("=" * 80)
+
+################################################################################
+# FIXED CARD INVESTMENT ENGINE - SPEC VERIFICATION
+# Comprehensive security & correctness testing per strict spec
+################################################################################
+
+print("\n" + "=" * 80)
+print("\n🔒 FIXED CARD INVESTMENT ENGINE - SPEC VERIFICATION")
+print("=" * 80)
+print("Testing: NO custom amount, fixed prices, atomic rollback, snapshot,")
+print("multiple investments, backend unlock, idempotency, concurrency/double-spend")
+print("=" * 80)
+
+# Create fresh test user for spec verification
+spec_timestamp = int(time.time() * 1000)
+spec_user_email = f"spectest{spec_timestamp}@easyx.com"
+spec_user_phone = f"+91{spec_timestamp % 10000000000}"
+spec_user_password = "SpecTest123!"
+spec_user_name = "Spec Test User"
+spec_user_token = None
+spec_user_id = None
+
+print(f"\n🔧 Setting up spec test user: {spec_user_email}")
+
+# Register spec test user
+try:
+    response = requests.post(
+        f"{BASE_URL}/auth/register",
+        json={
+            "name": spec_user_name,
+            "email": spec_user_email,
+            "phone": spec_user_phone,
+            "password": spec_user_password
+        },
+        timeout=10
+    )
+    if response.status_code == 201:
+        data = response.json()
+        spec_user_token = data["access_token"]
+        spec_user_id = data["user"]["id"]
+        print(f"✅ Spec test user registered: ID={spec_user_id}")
+    else:
+        print(f"❌ Failed to register spec test user: {response.status_code}")
+        exit(1)
+except Exception as e:
+    print(f"❌ Exception registering spec test user: {str(e)}")
+    exit(1)
+
+# Get admin token
+spec_admin_token = None
+try:
+    response = requests.post(
+        f"{BASE_URL}/auth/login",
+        json={"email": "admin@easyx.com", "password": "Admin@Easyx2026"},
+        timeout=10
+    )
+    if response.status_code == 200:
+        spec_admin_token = response.json()["access_token"]
+        print(f"✅ Admin token obtained for spec tests")
+    else:
+        print(f"❌ Failed to get admin token: {response.status_code}")
+        exit(1)
+except Exception as e:
+    print(f"❌ Exception getting admin token: {str(e)}")
+    exit(1)
+
+print("\n" + "=" * 80)
+print("\n📋 SPEC TEST 1: NO CUSTOM AMOUNT / FIXED PRICE")
+print("-" * 80)
+print("Backend must IGNORE any client amount/price fields and use DB plan price")
+
+# Fund user with 20000
+try:
+    response = requests.post(
+        f"{BASE_URL}/admin/wallet/adjust",
+        headers={"Authorization": f"Bearer {spec_admin_token}"},
+        json={
+            "user_id": spec_user_id,
+            "amount": "20000",
+            "direction": "credit",
+            "note": "Spec test funding"
+        },
+        timeout=10
+    )
+    if response.status_code == 200:
+        log_test("Admin credit 20000 for spec tests", True, 200)
+    else:
+        log_test("Admin credit 20000", False, response.status_code, 200)
+except Exception as e:
+    log_test("Admin credit 20000", False, detail=f"Exception: {str(e)}")
+
+# Try to buy silver with extra fields (amount, price) - backend must ignore them
+print("\n1️⃣  Attempting to buy silver with extra fields amount=1, price=5...")
+try:
+    response = requests.post(
+        f"{BASE_URL}/investments",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        json={
+            "plan_key": "silver",
+            "idempotency_key": "SPEC_NO_CUSTOM_1",
+            "amount": 1,  # Extra field - should be ignored
+            "price": 5    # Extra field - should be ignored
+        },
+        timeout=10
+    )
+    
+    if response.status_code == 201:
+        inv = response.json()
+        
+        # Backend must debit EXACTLY 300 (DB plan price), not 1 or 5
+        principal_correct = inv.get("principal") == "300.00"
+        log_test("Backend ignores client amount/price, uses DB price 300.00", principal_correct, 201,
+                detail=f"Got principal: {inv.get('principal')}")
+        
+        # Check wallet - should be debited exactly 300
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {spec_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            available = wallet.get("available_balance")
+            
+            # 20000 - 300 = 19700
+            wallet_correct = available == "19700.00"
+            log_test("Wallet debited exactly 300.00 (not custom amount)", wallet_correct, 200,
+                    detail=f"Got available: {available}, expected: 19700.00")
+        else:
+            log_test("GET /api/wallet after custom amount test", False, wallet_response.status_code, 200)
+    else:
+        log_test("Buy silver with extra fields", False, response.status_code, 201,
+                detail=response.text)
+except Exception as e:
+    log_test("No custom amount test", False, detail=f"Exception: {str(e)}")
+
+print("\n" + "=" * 80)
+print("\n📋 SPEC TEST 2: PURCHASE FLOW SUCCESS")
+print("-" * 80)
+print("Verify exact amounts, dates, ledger entries, maturity calculation")
+
+print("\n1️⃣  Buying silver plan...")
+try:
+    import datetime
+    before_purchase = datetime.datetime.now(datetime.timezone.utc)
+    
+    response = requests.post(
+        f"{BASE_URL}/investments",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        json={"plan_key": "silver", "idempotency_key": "SPEC_SUCCESS_1"},
+        timeout=10
+    )
+    
+    after_purchase = datetime.datetime.now(datetime.timezone.utc)
+    
+    if response.status_code == 201:
+        inv = response.json()
+        
+        # Verify all required fields
+        log_test("Purchase returns 201", True, 201)
+        
+        principal_ok = inv.get("principal") == "300.00"
+        profit_ok = inv.get("profit_amount") == "180.00"
+        maturity_ok = inv.get("maturity_amount") == "480.00"
+        status_ok = inv.get("status") == "active"
+        has_start = inv.get("start_at") is not None
+        has_maturity = inv.get("maturity_at") is not None
+        
+        log_test("Investment principal='300.00'", principal_ok, 201, detail=f"Got: {inv.get('principal')}")
+        log_test("Investment profit_amount='180.00'", profit_ok, 201, detail=f"Got: {inv.get('profit_amount')}")
+        log_test("Investment maturity_amount='480.00'", maturity_ok, 201, detail=f"Got: {inv.get('maturity_amount')}")
+        log_test("Investment status='active'", status_ok, 201, detail=f"Got: {inv.get('status')}")
+        log_test("Investment has start_at", has_start, 201)
+        log_test("Investment has maturity_at", has_maturity, 201)
+        
+        # Verify maturity_at = start_at + 60 days (allow few seconds tolerance)
+        if has_start and has_maturity:
+            try:
+                start_dt = datetime.datetime.fromisoformat(inv["start_at"].replace('Z', '+00:00'))
+                maturity_dt = datetime.datetime.fromisoformat(inv["maturity_at"].replace('Z', '+00:00'))
+                
+                expected_maturity = start_dt + datetime.timedelta(days=60)
+                time_diff = abs((maturity_dt - expected_maturity).total_seconds())
+                
+                # Allow 10 seconds tolerance
+                maturity_calc_ok = time_diff <= 10
+                log_test("Maturity date = start_at + 60 days", maturity_calc_ok, 201,
+                        detail=f"Diff: {time_diff:.1f}s (tolerance: 10s)")
+            except Exception as e:
+                log_test("Maturity date calculation", False, 201, detail=f"Parse error: {str(e)}")
+        
+        # Verify wallet ledger entry
+        tx_response = requests.get(
+            f"{BASE_URL}/transactions",
+            headers={"Authorization": f"Bearer {spec_user_token}"},
+            timeout=10
+        )
+        
+        if tx_response.status_code == 200:
+            transactions = tx_response.json()
+            
+            # Find the INVESTMENT debit for this purchase
+            investment_debits = [t for t in transactions 
+                               if t.get("type") == "INVESTMENT" 
+                               and t.get("direction") == "debit"
+                               and t.get("amount") == "300.00"]
+            
+            has_ledger_entry = len(investment_debits) >= 1
+            log_test("Wallet ledger has INVESTMENT debit entry", has_ledger_entry, 200,
+                    detail=f"Found {len(investment_debits)} matching entries")
+            
+            if has_ledger_entry:
+                entry = investment_debits[-1]  # Get most recent
+                entry_type_ok = entry.get("type") == "INVESTMENT"
+                entry_dir_ok = entry.get("direction") == "debit"
+                entry_amt_ok = entry.get("amount") == "300.00"
+                
+                log_test("Ledger entry type='INVESTMENT'", entry_type_ok, 200)
+                log_test("Ledger entry direction='debit'", entry_dir_ok, 200)
+                log_test("Ledger entry amount='300.00'", entry_amt_ok, 200)
+        
+        # Verify wallet balances updated correctly
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {spec_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            
+            # After 2 silver purchases: 20000 - 300 - 300 = 19400
+            available_ok = wallet.get("available_balance") == "19400.00"
+            total_invested_ok = wallet.get("total_invested") == "600.00"
+            
+            log_test("Wallet available decreased by 300", available_ok, 200,
+                    detail=f"Got: {wallet.get('available_balance')}, expected: 19400.00")
+            log_test("Wallet total_invested increased by 300", total_invested_ok, 200,
+                    detail=f"Got: {wallet.get('total_invested')}, expected: 600.00")
+    else:
+        log_test("Purchase flow success", False, response.status_code, 201, detail=response.text)
+except Exception as e:
+    log_test("Purchase flow success test", False, detail=f"Exception: {str(e)}")
+
+print("\n" + "=" * 80)
+print("\n📋 SPEC TEST 3: SNAPSHOT")
+print("-" * 80)
+print("Investment must carry lock_days and profit/maturity from plan at purchase time")
+
+print("\n1️⃣  Verifying snapshot fields in investment...")
+try:
+    response = requests.get(
+        f"{BASE_URL}/investments",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        timeout=10
+    )
+    
+    if response.status_code == 200:
+        investments = response.json()
+        
+        if len(investments) > 0:
+            inv = investments[0]  # Get most recent
+            
+            # Check lock_days is snapshotted
+            lock_days_ok = inv.get("lock_days") == 60
+            log_test("Investment has lock_days=60 (snapshot)", lock_days_ok, 200,
+                    detail=f"Got: {inv.get('lock_days')}")
+            
+            # Check profit/maturity amounts are snapshotted
+            profit_snapshot_ok = inv.get("profit_amount") == "180.00"
+            maturity_snapshot_ok = inv.get("maturity_amount") == "480.00"
+            
+            log_test("Investment profit_amount snapshotted", profit_snapshot_ok, 200,
+                    detail=f"Got: {inv.get('profit_amount')}")
+            log_test("Investment maturity_amount snapshotted", maturity_snapshot_ok, 200,
+                    detail=f"Got: {inv.get('maturity_amount')}")
+        else:
+            log_test("Get investments for snapshot test", False, 200, detail="No investments found")
+    else:
+        log_test("GET /api/investments for snapshot", False, response.status_code, 200)
+except Exception as e:
+    log_test("Snapshot test", False, detail=f"Exception: {str(e)}")
+
+print("\n" + "=" * 80)
+print("\n📋 SPEC TEST 4: MULTIPLE INDEPENDENT INVESTMENTS")
+print("-" * 80)
+print("Buy gold THREE times with different keys - should create 3 distinct investments")
+
+gold_investment_ids = []
+
+for i in range(1, 4):
+    print(f"\n{i}️⃣  Buying gold plan (purchase {i}/3)...")
+    try:
+        response = requests.post(
+            f"{BASE_URL}/investments",
+            headers={"Authorization": f"Bearer {spec_user_token}"},
+            json={"plan_key": "gold", "idempotency_key": f"SPEC_GOLD_{i}"},
+            timeout=10
+        )
+        
+        if response.status_code == 201:
+            inv = response.json()
+            inv_id = inv.get("id")
+            gold_investment_ids.append(inv_id)
+            
+            principal_ok = inv.get("principal") == "1000.00"
+            has_maturity = inv.get("maturity_at") is not None
+            
+            log_test(f"Gold purchase {i} returns 201", True, 201)
+            log_test(f"Gold purchase {i} principal='1000.00'", principal_ok, 201,
+                    detail=f"Got: {inv.get('principal')}")
+            log_test(f"Gold purchase {i} has maturity_at", has_maturity, 201)
+        else:
+            log_test(f"Gold purchase {i}", False, response.status_code, 201, detail=response.text)
+    except Exception as e:
+        log_test(f"Gold purchase {i}", False, detail=f"Exception: {str(e)}")
+
+# Verify 3 distinct investment IDs
+print("\n4️⃣  Verifying 3 distinct investment IDs...")
+if len(gold_investment_ids) == 3:
+    all_unique = len(set(gold_investment_ids)) == 3
+    log_test("3 gold purchases created 3 distinct investment IDs", all_unique, 201,
+            detail=f"IDs: {gold_investment_ids}")
+else:
+    log_test("3 gold purchases completed", False, detail=f"Only {len(gold_investment_ids)} purchases succeeded")
+
+# Verify wallet debited 3000 total (3 x 1000)
+print("\n5️⃣  Verifying wallet debited 3000 total...")
+try:
+    wallet_response = requests.get(
+        f"{BASE_URL}/wallet",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        timeout=10
+    )
+    
+    if wallet_response.status_code == 200:
+        wallet = wallet_response.json()
+        
+        # Started with 19400, bought 3 gold at 1000 each = 19400 - 3000 = 16400
+        available_ok = wallet.get("available_balance") == "16400.00"
+        log_test("Wallet debited 3000 total for 3 gold purchases", available_ok, 200,
+                detail=f"Got: {wallet.get('available_balance')}, expected: 16400.00")
+    else:
+        log_test("GET /api/wallet after 3 gold purchases", False, wallet_response.status_code, 200)
+except Exception as e:
+    log_test("Wallet check after 3 gold purchases", False, detail=f"Exception: {str(e)}")
+
+# Verify GET /api/investments lists all 3 gold investments
+print("\n6️⃣  Verifying GET /api/investments lists all 3 gold investments...")
+try:
+    response = requests.get(
+        f"{BASE_URL}/investments",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        timeout=10
+    )
+    
+    if response.status_code == 200:
+        investments = response.json()
+        
+        # Filter for gold investments
+        gold_invs = [inv for inv in investments if inv.get("plan_key") == "gold"]
+        
+        gold_count_ok = len(gold_invs) >= 3
+        log_test("GET /api/investments lists at least 3 gold investments", gold_count_ok, 200,
+                detail=f"Found {len(gold_invs)} gold investments")
+        
+        # Verify all are active with separate maturity dates
+        if len(gold_invs) >= 3:
+            all_active = all(inv.get("status") == "active" for inv in gold_invs[:3])
+            log_test("All 3 gold investments have status='active'", all_active, 200)
+            
+            maturity_dates = [inv.get("maturity_at") for inv in gold_invs[:3]]
+            has_maturity = all(m is not None for m in maturity_dates)
+            log_test("All 3 gold investments have maturity_at", has_maturity, 200)
+    else:
+        log_test("GET /api/investments for gold list", False, response.status_code, 200)
+except Exception as e:
+    log_test("List gold investments", False, detail=f"Exception: {str(e)}")
+
+print("\n" + "=" * 80)
+print("\n📋 SPEC TEST 5: UNLOCK STATE (backend-only)")
+print("-" * 80)
+print("Plan unlock state must be derived from backend investment records, not client input")
+
+print("\n1️⃣  Checking plans before platinum purchase...")
+try:
+    response = requests.get(
+        f"{BASE_URL}/plans",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        timeout=10
+    )
+    
+    if response.status_code == 200:
+        plans = response.json()
+        plan_map = {p["key"]: p for p in plans}
+        
+        # Platinum should be locked (not purchased yet)
+        if "platinum" in plan_map:
+            platinum = plan_map["platinum"]
+            platinum_locked = platinum.get("unlocked") == False
+            log_test("Platinum unlocked=false before purchase", platinum_locked, 200,
+                    detail=f"Got unlocked: {platinum.get('unlocked')}")
+        else:
+            log_test("Platinum plan exists", False, 200)
+    else:
+        log_test("GET /api/plans before platinum", False, response.status_code, 200)
+except Exception as e:
+    log_test("Plans check before platinum", False, detail=f"Exception: {str(e)}")
+
+print("\n2️⃣  Buying one platinum plan...")
+try:
+    response = requests.post(
+        f"{BASE_URL}/investments",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        json={"plan_key": "platinum", "idempotency_key": "SPEC_PLATINUM_1"},
+        timeout=10
+    )
+    
+    if response.status_code == 201:
+        log_test("Platinum purchase succeeds", True, 201)
+    else:
+        log_test("Platinum purchase", False, response.status_code, 201, detail=response.text)
+except Exception as e:
+    log_test("Platinum purchase", False, detail=f"Exception: {str(e)}")
+
+print("\n3️⃣  Checking plans after platinum purchase...")
+try:
+    response = requests.get(
+        f"{BASE_URL}/plans",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        timeout=10
+    )
+    
+    if response.status_code == 200:
+        plans = response.json()
+        plan_map = {p["key"]: p for p in plans}
+        
+        # Platinum should now be unlocked
+        if "platinum" in plan_map:
+            platinum = plan_map["platinum"]
+            platinum_unlocked = platinum.get("unlocked") == True
+            platinum_cards = platinum.get("cards") == 1
+            
+            log_test("Platinum unlocked=true after purchase", platinum_unlocked, 200,
+                    detail=f"Got unlocked: {platinum.get('unlocked')}")
+            log_test("Platinum cards=1 after purchase", platinum_cards, 200,
+                    detail=f"Got cards: {platinum.get('cards')}")
+        else:
+            log_test("Platinum plan exists", False, 200)
+        
+        # Other unpurchased plans should remain locked
+        if "diamond" in plan_map:
+            diamond = plan_map["diamond"]
+            diamond_locked = diamond.get("unlocked") == False
+            log_test("Diamond remains unlocked=false (not purchased)", diamond_locked, 200,
+                    detail=f"Got unlocked: {diamond.get('unlocked')}")
+        else:
+            log_test("Diamond plan exists", False, 200)
+    else:
+        log_test("GET /api/plans after platinum", False, response.status_code, 200)
+except Exception as e:
+    log_test("Plans check after platinum", False, detail=f"Exception: {str(e)}")
+
+print("\n" + "=" * 80)
+print("\n📋 SPEC TEST 6: INSUFFICIENT BALANCE + ROLLBACK")
+print("-" * 80)
+print("CRITICAL: Full transaction rollback on insufficient balance")
+
+# Create new user with limited balance
+rollback_timestamp = int(time.time() * 1000)
+rollback_user_email = f"rollback{rollback_timestamp}@easyx.com"
+rollback_user_phone = f"+91{rollback_timestamp % 10000000000}"
+rollback_user_token = None
+rollback_user_id = None
+
+print("\n1️⃣  Creating user with limited balance...")
+try:
+    # Register user
+    response = requests.post(
+        f"{BASE_URL}/auth/register",
+        json={
+            "name": "Rollback Test",
+            "email": rollback_user_email,
+            "phone": rollback_user_phone,
+            "password": "Rollback123!"
+        },
+        timeout=10
+    )
+    
+    if response.status_code == 201:
+        rollback_user_token = response.json()["access_token"]
+        rollback_user_id = response.json()["user"]["id"]
+        
+        # Credit only 100 (less than gold price 1000)
+        credit_response = requests.post(
+            f"{BASE_URL}/admin/wallet/adjust",
+            headers={"Authorization": f"Bearer {spec_admin_token}"},
+            json={
+                "user_id": rollback_user_id,
+                "amount": "100",
+                "direction": "credit",
+                "note": "Rollback test - insufficient"
+            },
+            timeout=10
+        )
+        
+        if credit_response.status_code == 200:
+            log_test("Rollback test user created with 100 balance", True, 200)
+        else:
+            log_test("Credit rollback test user", False, credit_response.status_code, 200)
+    else:
+        log_test("Register rollback test user", False, response.status_code, 201)
+except Exception as e:
+    log_test("Setup rollback test user", False, detail=f"Exception: {str(e)}")
+
+print("\n2️⃣  Attempting to buy gold (1000) with only 100 available...")
+if rollback_user_token:
+    try:
+        response = requests.post(
+            f"{BASE_URL}/investments",
+            headers={"Authorization": f"Bearer {rollback_user_token}"},
+            json={"plan_key": "gold", "idempotency_key": "ROLLBACK_TEST_1"},
+            timeout=10
+        )
+        
+        # Should return 402
+        if response.status_code == 402:
+            detail = response.json().get("detail", {})
+            
+            code_ok = detail.get("code") == "insufficient_balance"
+            required_ok = detail.get("required") == "1000.00"
+            available_ok = detail.get("available") == "100.00"
+            
+            log_test("Insufficient balance returns 402", True, 402)
+            log_test("Error detail.code='insufficient_balance'", code_ok, 402)
+            log_test("Error detail.required='1000.00'", required_ok, 402)
+            log_test("Error detail.available='100.00'", available_ok, 402)
+        else:
+            log_test("Insufficient balance returns 402", False, response.status_code, 402,
+                    detail=response.text)
+    except Exception as e:
+        log_test("Insufficient balance test", False, detail=f"Exception: {str(e)}")
+    
+    print("\n3️⃣  CRITICAL: Verifying NO investment document left in non-cancelled state...")
+    try:
+        inv_response = requests.get(
+            f"{BASE_URL}/investments",
+            headers={"Authorization": f"Bearer {rollback_user_token}"},
+            timeout=10
+        )
+        
+        if inv_response.status_code == 200:
+            investments = inv_response.json()
+            
+            # Should have NO active investments
+            active_invs = [inv for inv in investments if inv.get("status") == "active"]
+            no_active = len(active_invs) == 0
+            
+            log_test("ROLLBACK: No active investment created", no_active, 200,
+                    detail=f"Found {len(active_invs)} active investments (expected 0)")
+        else:
+            log_test("GET /api/investments for rollback check", False, inv_response.status_code, 200)
+    except Exception as e:
+        log_test("Rollback investment check", False, detail=f"Exception: {str(e)}")
+    
+    print("\n4️⃣  CRITICAL: Verifying wallet balance UNCHANGED...")
+    try:
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {rollback_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            
+            balance_unchanged = wallet.get("available_balance") == "100.00"
+            log_test("ROLLBACK: Wallet balance unchanged (100.00)", balance_unchanged, 200,
+                    detail=f"Got: {wallet.get('available_balance')}")
+        else:
+            log_test("GET /api/wallet for rollback check", False, wallet_response.status_code, 200)
+    except Exception as e:
+        log_test("Rollback wallet check", False, detail=f"Exception: {str(e)}")
+    
+    print("\n5️⃣  CRITICAL: Verifying NO INVESTMENT ledger debit entry created...")
+    try:
+        tx_response = requests.get(
+            f"{BASE_URL}/transactions",
+            headers={"Authorization": f"Bearer {rollback_user_token}"},
+            timeout=10
+        )
+        
+        if tx_response.status_code == 200:
+            transactions = tx_response.json()
+            
+            # Should only have 1 transaction (the admin credit)
+            investment_debits = [t for t in transactions 
+                               if t.get("type") == "INVESTMENT" 
+                               and t.get("direction") == "debit"]
+            
+            no_debit = len(investment_debits) == 0
+            log_test("ROLLBACK: No INVESTMENT debit entry created", no_debit, 200,
+                    detail=f"Found {len(investment_debits)} INVESTMENT debits (expected 0)")
+            
+            # Total transaction count should be 1 (only admin credit)
+            tx_count = len(transactions)
+            log_test("ROLLBACK: Transaction count = 1 (only admin credit)", tx_count == 1, 200,
+                    detail=f"Got {tx_count} transactions")
+        else:
+            log_test("GET /api/transactions for rollback check", False, tx_response.status_code, 200)
+    except Exception as e:
+        log_test("Rollback ledger check", False, detail=f"Exception: {str(e)}")
+
+print("\n" + "=" * 80)
+print("\n📋 SPEC TEST 7: IDEMPOTENCY (double-click / duplicate request)")
+print("-" * 80)
+print("Same idempotency_key must return same investment, wallet debited only ONCE")
+
+# This is already tested in Phase 5, but let's do a focused test here
+print("\n1️⃣  Buying diamond with key 'DUP_DIAMOND' twice...")
+
+diamond_id_1 = None
+diamond_id_2 = None
+
+try:
+    # First request
+    response1 = requests.post(
+        f"{BASE_URL}/investments",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        json={"plan_key": "diamond", "idempotency_key": "DUP_DIAMOND"},
+        timeout=10
+    )
+    
+    if response1.status_code == 201:
+        diamond_id_1 = response1.json().get("id")
+        log_test("First diamond purchase with 'DUP_DIAMOND'", True, 201)
+    else:
+        log_test("First diamond purchase", False, response1.status_code, 201)
+    
+    # Second request with SAME key
+    response2 = requests.post(
+        f"{BASE_URL}/investments",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        json={"plan_key": "diamond", "idempotency_key": "DUP_DIAMOND"},
+        timeout=10
+    )
+    
+    if response2.status_code == 201:
+        diamond_id_2 = response2.json().get("id")
+        log_test("Second diamond purchase with 'DUP_DIAMOND'", True, 201)
+        
+        # Verify same ID
+        same_id = diamond_id_1 == diamond_id_2
+        log_test("IDEMPOTENCY: Both requests return SAME investment ID", same_id, 201,
+                detail=f"ID1: {diamond_id_1}, ID2: {diamond_id_2}")
+    else:
+        log_test("Second diamond purchase", False, response2.status_code, 201)
+except Exception as e:
+    log_test("Idempotency test", False, detail=f"Exception: {str(e)}")
+
+print("\n2️⃣  Verifying wallet debited only ONCE...")
+try:
+    wallet_response = requests.get(
+        f"{BASE_URL}/wallet",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        timeout=10
+    )
+    
+    if wallet_response.status_code == 200:
+        wallet = wallet_response.json()
+        
+        # Before diamond: 16400 - 5000 (platinum) = 11400
+        # After diamond: 11400 - 10000 = 1400 (only ONE debit)
+        available = wallet.get("available_balance")
+        balance_ok = available == "1400.00"
+        
+        log_test("IDEMPOTENCY: Wallet debited only ONCE (1400.00)", balance_ok, 200,
+                detail=f"Got: {available}, expected: 1400.00")
+    else:
+        log_test("GET /api/wallet for idempotency check", False, wallet_response.status_code, 200)
+except Exception as e:
+    log_test("Idempotency wallet check", False, detail=f"Exception: {str(e)}")
+
+print("\n3️⃣  Verifying only ONE INVESTMENT ledger entry for diamond...")
+try:
+    tx_response = requests.get(
+        f"{BASE_URL}/transactions",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        timeout=10
+    )
+    
+    if tx_response.status_code == 200:
+        transactions = tx_response.json()
+        
+        # Count diamond investment debits (10000.00)
+        diamond_debits = [t for t in transactions 
+                         if t.get("type") == "INVESTMENT" 
+                         and t.get("direction") == "debit"
+                         and t.get("amount") == "10000.00"]
+        
+        one_debit = len(diamond_debits) == 1
+        log_test("IDEMPOTENCY: Only ONE INVESTMENT debit for diamond", one_debit, 200,
+                detail=f"Found {len(diamond_debits)} diamond debits (expected 1)")
+    else:
+        log_test("GET /api/transactions for idempotency check", False, tx_response.status_code, 200)
+except Exception as e:
+    log_test("Idempotency ledger check", False, detail=f"Exception: {str(e)}")
+
+print("\n" + "=" * 80)
+print("\n📋 SPEC TEST 8: CONCURRENCY / NO DOUBLE-SPEND (MOST IMPORTANT)")
+print("-" * 80)
+print("CRITICAL: Race condition testing - wallet must NEVER go negative")
+
+# Test 8a: Many concurrent requests with DIFFERENT keys
+print("\n🔥 TEST 8a: Concurrent requests with DIFFERENT keys (race condition)")
+print("-" * 80)
+
+# Create fresh user with EXACTLY 1000 (enough for ONE gold)
+race1_timestamp = int(time.time() * 1000)
+race1_user_email = f"race1{race1_timestamp}@easyx.com"
+race1_user_phone = f"+91{race1_timestamp % 10000000000}"
+race1_user_token = None
+race1_user_id = None
+
+print("\n1️⃣  Creating user with EXACTLY 1000 balance...")
+try:
+    response = requests.post(
+        f"{BASE_URL}/auth/register",
+        json={
+            "name": "Race Test 1",
+            "email": race1_user_email,
+            "phone": race1_user_phone,
+            "password": "Race123!"
+        },
+        timeout=10
+    )
+    
+    if response.status_code == 201:
+        race1_user_token = response.json()["access_token"]
+        race1_user_id = response.json()["user"]["id"]
+        
+        # Credit EXACTLY 1000
+        credit_response = requests.post(
+            f"{BASE_URL}/admin/wallet/adjust",
+            headers={"Authorization": f"Bearer {spec_admin_token}"},
+            json={
+                "user_id": race1_user_id,
+                "amount": "1000",
+                "direction": "credit",
+                "note": "Race test - exactly 1000"
+            },
+            timeout=10
+        )
+        
+        if credit_response.status_code == 200:
+            log_test("Race test user created with EXACTLY 1000 balance", True, 200)
+        else:
+            log_test("Credit race test user", False, credit_response.status_code, 200)
+    else:
+        log_test("Register race test user", False, response.status_code, 201)
+except Exception as e:
+    log_test("Setup race test user", False, detail=f"Exception: {str(e)}")
+
+print("\n2️⃣  Firing MANY concurrent gold purchase requests (different keys)...")
+if race1_user_token:
+    import concurrent.futures
+    import threading
+    
+    race_results = []
+    race_lock = threading.Lock()
+    
+    def buy_gold_concurrent(key_suffix):
+        try:
+            response = requests.post(
+                f"{BASE_URL}/investments",
+                headers={"Authorization": f"Bearer {race1_user_token}"},
+                json={"plan_key": "gold", "idempotency_key": f"RACE1_{key_suffix}"},
+                timeout=10
+            )
+            with race_lock:
+                race_results.append({
+                    "key": f"RACE1_{key_suffix}",
+                    "status": response.status_code,
+                    "data": response.json() if response.status_code in [201, 402] else None
+                })
+        except Exception as e:
+            with race_lock:
+                race_results.append({
+                    "key": f"RACE1_{key_suffix}",
+                    "status": "error",
+                    "error": str(e)
+                })
+    
+    # Fire 10 concurrent requests
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(buy_gold_concurrent, i) for i in range(10)]
+        concurrent.futures.wait(futures)
+    
+    print(f"\n   Completed {len(race_results)} concurrent requests")
+    
+    # Analyze results
+    success_count = sum(1 for r in race_results if r["status"] == 201)
+    insufficient_count = sum(1 for r in race_results if r["status"] == 402)
+    
+    print(f"   - 201 (success): {success_count}")
+    print(f"   - 402 (insufficient): {insufficient_count}")
+    
+    # CRITICAL: At most ONE should succeed
+    one_success = success_count <= 1
+    log_test("CONCURRENCY: At most ONE gold purchase succeeded", one_success, 201,
+            detail=f"Got {success_count} successes (expected ≤1)")
+    
+    # Rest should fail with 402
+    rest_failed = insufficient_count >= 9
+    log_test("CONCURRENCY: Rest failed with 402 insufficient_balance", rest_failed, 402,
+            detail=f"Got {insufficient_count} failures (expected ≥9)")
+    
+    print("\n3️⃣  CRITICAL: Verifying wallet NEVER went negative...")
+    try:
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {race1_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            available = wallet.get("available_balance")
+            
+            # Should be exactly 0.00 (1000 - 1000)
+            balance_ok = available == "0.00"
+            log_test("CONCURRENCY: Final balance exactly 0.00", balance_ok, 200,
+                    detail=f"Got: {available}")
+            
+            # Balance must NOT be negative
+            try:
+                balance_float = float(available)
+                not_negative = balance_float >= 0
+                log_test("CONCURRENCY: Balance NOT negative", not_negative, 200,
+                        detail=f"Got: {available}")
+            except (ValueError, TypeError):
+                log_test("CONCURRENCY: Balance parse", False, 200, detail="Could not parse balance")
+        else:
+            log_test("GET /api/wallet for concurrency check", False, wallet_response.status_code, 200)
+    except Exception as e:
+        log_test("Concurrency wallet check", False, detail=f"Exception: {str(e)}")
+    
+    print("\n4️⃣  CRITICAL: Verifying exactly ONE INVESTMENT debit in ledger...")
+    try:
+        tx_response = requests.get(
+            f"{BASE_URL}/transactions",
+            headers={"Authorization": f"Bearer {race1_user_token}"},
+            timeout=10
+        )
+        
+        if tx_response.status_code == 200:
+            transactions = tx_response.json()
+            
+            investment_debits = [t for t in transactions 
+                               if t.get("type") == "INVESTMENT" 
+                               and t.get("direction") == "debit"]
+            
+            one_debit = len(investment_debits) == 1
+            log_test("CONCURRENCY: Exactly ONE INVESTMENT debit", one_debit, 200,
+                    detail=f"Found {len(investment_debits)} debits (expected 1)")
+            
+            if len(investment_debits) == 1:
+                debit_amount = investment_debits[0].get("amount")
+                amount_ok = debit_amount == "1000.00"
+                log_test("CONCURRENCY: Debit amount is 1000.00", amount_ok, 200,
+                        detail=f"Got: {debit_amount}")
+        else:
+            log_test("GET /api/transactions for concurrency check", False, tx_response.status_code, 200)
+    except Exception as e:
+        log_test("Concurrency ledger check", False, detail=f"Exception: {str(e)}")
+    
+    print("\n5️⃣  CRITICAL: Verifying wallet consistency...")
+    try:
+        consistency_response = requests.get(
+            f"{BASE_URL}/wallet/consistency",
+            headers={"Authorization": f"Bearer {race1_user_token}"},
+            timeout=10
+        )
+        
+        if consistency_response.status_code == 200:
+            consistency = consistency_response.json()
+            
+            is_consistent = consistency.get("consistent") == True
+            log_test("CONCURRENCY: Wallet consistency check passes", is_consistent, 200,
+                    detail=f"consistent={consistency.get('consistent')}")
+        else:
+            log_test("GET /api/wallet/consistency for concurrency", False, 
+                    consistency_response.status_code, 200)
+    except Exception as e:
+        log_test("Concurrency consistency check", False, detail=f"Exception: {str(e)}")
+
+# Test 8b: Many concurrent requests with SAME key
+print("\n🔥 TEST 8b: Concurrent requests with SAME key (idempotency under race)")
+print("-" * 80)
+
+# Create another fresh user with EXACTLY 1000
+race2_timestamp = int(time.time() * 1000)
+race2_user_email = f"race2{race2_timestamp}@easyx.com"
+race2_user_phone = f"+91{race2_timestamp % 10000000000}"
+race2_user_token = None
+race2_user_id = None
+
+print("\n1️⃣  Creating user with EXACTLY 1000 balance...")
+try:
+    response = requests.post(
+        f"{BASE_URL}/auth/register",
+        json={
+            "name": "Race Test 2",
+            "email": race2_user_email,
+            "phone": race2_user_phone,
+            "password": "Race123!"
+        },
+        timeout=10
+    )
+    
+    if response.status_code == 201:
+        race2_user_token = response.json()["access_token"]
+        race2_user_id = response.json()["user"]["id"]
+        
+        credit_response = requests.post(
+            f"{BASE_URL}/admin/wallet/adjust",
+            headers={"Authorization": f"Bearer {spec_admin_token}"},
+            json={
+                "user_id": race2_user_id,
+                "amount": "1000",
+                "direction": "credit",
+                "note": "Race test 2 - exactly 1000"
+            },
+            timeout=10
+        )
+        
+        if credit_response.status_code == 200:
+            log_test("Race test 2 user created with EXACTLY 1000 balance", True, 200)
+        else:
+            log_test("Credit race test 2 user", False, credit_response.status_code, 200)
+    else:
+        log_test("Register race test 2 user", False, response.status_code, 201)
+except Exception as e:
+    log_test("Setup race test 2 user", False, detail=f"Exception: {str(e)}")
+
+print("\n2️⃣  Firing MANY concurrent gold requests with SAME key 'RACE2'...")
+if race2_user_token:
+    race2_results = []
+    race2_lock = threading.Lock()
+    
+    def buy_gold_same_key():
+        try:
+            response = requests.post(
+                f"{BASE_URL}/investments",
+                headers={"Authorization": f"Bearer {race2_user_token}"},
+                json={"plan_key": "gold", "idempotency_key": "RACE2"},
+                timeout=10
+            )
+            with race2_lock:
+                race2_results.append({
+                    "status": response.status_code,
+                    "data": response.json() if response.status_code == 201 else None
+                })
+        except Exception as e:
+            with race2_lock:
+                race2_results.append({"status": "error", "error": str(e)})
+    
+    # Fire 10 concurrent requests with SAME key
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(buy_gold_same_key) for _ in range(10)]
+        concurrent.futures.wait(futures)
+    
+    print(f"\n   Completed {len(race2_results)} concurrent requests")
+    
+    # All should return 201 (idempotent)
+    all_success = all(r["status"] == 201 for r in race2_results)
+    log_test("IDEMPOTENCY+RACE: All requests return 201", all_success, 201,
+            detail=f"Got {sum(1 for r in race2_results if r['status'] == 201)}/10 successes")
+    
+    # All should return SAME investment ID
+    investment_ids = [r["data"].get("id") for r in race2_results if r.get("data")]
+    if len(investment_ids) > 0:
+        all_same_id = len(set(investment_ids)) == 1
+        log_test("IDEMPOTENCY+RACE: All return SAME investment ID", all_same_id, 201,
+                detail=f"Unique IDs: {len(set(investment_ids))} (expected 1)")
+    
+    print("\n3️⃣  Verifying wallet debited only ONCE (balance = 0.00)...")
+    try:
+        wallet_response = requests.get(
+            f"{BASE_URL}/wallet",
+            headers={"Authorization": f"Bearer {race2_user_token}"},
+            timeout=10
+        )
+        
+        if wallet_response.status_code == 200:
+            wallet = wallet_response.json()
+            available = wallet.get("available_balance")
+            
+            balance_ok = available == "0.00"
+            log_test("IDEMPOTENCY+RACE: Balance exactly 0.00 (only ONE debit)", balance_ok, 200,
+                    detail=f"Got: {available}")
+        else:
+            log_test("GET /api/wallet for idempotency+race", False, wallet_response.status_code, 200)
+    except Exception as e:
+        log_test("Idempotency+race wallet check", False, detail=f"Exception: {str(e)}")
+    
+    print("\n4️⃣  Verifying exactly ONE INVESTMENT debit in ledger...")
+    try:
+        tx_response = requests.get(
+            f"{BASE_URL}/transactions",
+            headers={"Authorization": f"Bearer {race2_user_token}"},
+            timeout=10
+        )
+        
+        if tx_response.status_code == 200:
+            transactions = tx_response.json()
+            
+            investment_debits = [t for t in transactions 
+                               if t.get("type") == "INVESTMENT" 
+                               and t.get("direction") == "debit"]
+            
+            one_debit = len(investment_debits) == 1
+            log_test("IDEMPOTENCY+RACE: Exactly ONE INVESTMENT debit", one_debit, 200,
+                    detail=f"Found {len(investment_debits)} debits (expected 1)")
+        else:
+            log_test("GET /api/transactions for idempotency+race", False, tx_response.status_code, 200)
+    except Exception as e:
+        log_test("Idempotency+race ledger check", False, detail=f"Exception: {str(e)}")
+    
+    print("\n5️⃣  Verifying wallet consistency...")
+    try:
+        consistency_response = requests.get(
+            f"{BASE_URL}/wallet/consistency",
+            headers={"Authorization": f"Bearer {race2_user_token}"},
+            timeout=10
+        )
+        
+        if consistency_response.status_code == 200:
+            consistency = consistency_response.json()
+            
+            is_consistent = consistency.get("consistent") == True
+            log_test("IDEMPOTENCY+RACE: Wallet consistency check passes", is_consistent, 200,
+                    detail=f"consistent={consistency.get('consistent')}")
+        else:
+            log_test("GET /api/wallet/consistency for idempotency+race", False, 
+                    consistency_response.status_code, 200)
+    except Exception as e:
+        log_test("Idempotency+race consistency check", False, detail=f"Exception: {str(e)}")
+
+print("\n" + "=" * 80)
+print("\n📋 SPEC TEST 9: AUTH")
+print("-" * 80)
+print("Token validation and plan_key validation")
+
+print("\n1️⃣  Testing POST /api/investments without token...")
+try:
+    response = requests.post(
+        f"{BASE_URL}/investments",
+        json={"plan_key": "silver"},
+        timeout=10
+    )
+    
+    if response.status_code == 401:
+        log_test("POST /api/investments without token returns 401", True, 401)
+    else:
+        log_test("POST /api/investments without token", False, response.status_code, 401)
+except Exception as e:
+    log_test("Auth test - no token", False, detail=f"Exception: {str(e)}")
+
+print("\n2️⃣  Testing invalid plan_key...")
+try:
+    response = requests.post(
+        f"{BASE_URL}/investments",
+        headers={"Authorization": f"Bearer {spec_user_token}"},
+        json={"plan_key": "bronze"},  # Invalid plan key
+        timeout=10
+    )
+    
+    # Should return 422 (Pydantic validation) or 404 (plan not found)
+    if response.status_code in [422, 404]:
+        log_test("Invalid plan_key rejected", True, response.status_code,
+                detail=f"Got {response.status_code} (422 or 404 expected)")
+    else:
+        log_test("Invalid plan_key rejected", False, response.status_code, "422 or 404")
+except Exception as e:
+    log_test("Auth test - invalid plan_key", False, detail=f"Exception: {str(e)}")
+
+
 print(f"✅ Passed: {passed}")
 print(f"❌ Failed: {failed}")
 print(f"📈 Total: {passed + failed}")
