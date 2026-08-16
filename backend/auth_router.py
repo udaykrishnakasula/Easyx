@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 import auth_service
 import maintenance_service
 import rate_limit
+import audit_service
 from deps import get_current_user
 from schemas import LoginIn, RegisterIn, TokenOut, UserOut
 from security import create_access_token
@@ -37,6 +38,12 @@ async def login(payload: LoginIn, request: Request):
     user = await auth_service.authenticate_user(payload.email, payload.password)
     # Successful login clears the email bucket so legit users aren't locked out.
     rate_limit.reset(email_key)
+    # Audit trail: record every successful ADMIN sign-in.
+    if user.get("role") == "admin":
+        await audit_service.log(
+            "admin.login", actor=user, entity_type="user", entity_id=user["id"],
+            meta={"ip": ip},
+        )
     token = create_access_token(subject=user["id"], role=user["role"])
     return TokenOut(access_token=token, user=UserOut(**auth_service.public_user(user)))
 

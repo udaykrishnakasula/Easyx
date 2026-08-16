@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { ShieldCheck, Inbox, Settings, ArrowLeft, LogOut, BadgeCheck, Share2, Users, Wrench, LayoutDashboard, ArrowUpFromLine, PiggyBank, Layers } from "lucide-react";
+import { ShieldCheck, Inbox, Settings, ArrowLeft, LogOut, BadgeCheck, Share2, Users, Wrench, LayoutDashboard, ArrowUpFromLine, PiggyBank, Layers, Download } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 
@@ -13,6 +13,7 @@ const NAV = [
   { to: "/admin/plans", label: "Plans", icon: Layers },
   { to: "/admin/kyc", label: "KYC Review", icon: BadgeCheck },
   { to: "/admin/referrals", label: "Referrals", icon: Share2 },
+  { to: "/admin/reports", label: "Reports & Audit", icon: Download },
   { to: "/admin/maintenance", label: "Maintenance", icon: Wrench },
   { to: "/admin/settings", label: "Deposit Settings", icon: Settings },
 ];

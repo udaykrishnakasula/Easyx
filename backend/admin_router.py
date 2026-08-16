@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -23,10 +24,49 @@ import notify_service
 import plans_service
 import withdrawal_service
 import admin_stats_service
+import reports_service
 from db import db
 from deps import require_admin
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+@router.get("/reports")
+async def list_reports(admin: dict = Depends(require_admin)):
+    """List the datasets an admin can export."""
+    return {"datasets": reports_service.DATASETS, "formats": ["csv", "xlsx"]}
+
+
+@router.get("/reports/{dataset}")
+async def export_report(dataset: str, format: str = "csv", admin: dict = Depends(require_admin)):
+    """Export a dataset as CSV or XLSX (admin-only)."""
+    if dataset not in reports_service.DATASETS:
+        raise HTTPException(status_code=404, detail=f"Unknown dataset '{dataset}'.")
+    fmt_lower = (format or "csv").lower()
+    if fmt_lower not in ("csv", "xlsx"):
+        raise HTTPException(status_code=400, detail="format must be 'csv' or 'xlsx'.")
+
+    headers, rows = await reports_service.build_dataset(dataset)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    await audit_service.log(
+        "report.export", actor=admin, entity_type="report", entity_id=dataset,
+        meta={"format": fmt_lower, "row_count": len(rows)},
+    )
+
+    if fmt_lower == "csv":
+        content = reports_service.to_csv_bytes(headers, rows)
+        media_type = "text/csv"
+        filename = f"easyx-{dataset}-{ts}.csv"
+    else:
+        content = reports_service.to_xlsx_bytes(headers, rows, sheet_name=dataset)
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = f"easyx-{dataset}-{ts}.xlsx"
+
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 class AdjustIn(BaseModel):
@@ -123,12 +163,22 @@ async def admin_list_deposits(status: Optional[str] = None, admin: dict = Depend
 
 @router.post("/deposits/{deposit_id}/approve")
 async def admin_approve_deposit(deposit_id: str, payload: ApproveDepositIn, admin: dict = Depends(require_admin)):
-    return await deposit_service.approve(deposit_id, admin["id"], payload.approved_amount, payload.note)
+    result = await deposit_service.approve(deposit_id, admin["id"], payload.approved_amount, payload.note)
+    await audit_service.log(
+        "deposit.approve", actor=admin, entity_type="deposit", entity_id=deposit_id,
+        meta={"approved_amount": payload.approved_amount, "note": payload.note},
+    )
+    return result
 
 
 @router.post("/deposits/{deposit_id}/reject")
 async def admin_reject_deposit(deposit_id: str, payload: RejectDepositIn, admin: dict = Depends(require_admin)):
-    return await deposit_service.reject(deposit_id, admin["id"], payload.note)
+    result = await deposit_service.reject(deposit_id, admin["id"], payload.note)
+    await audit_service.log(
+        "deposit.reject", actor=admin, entity_type="deposit", entity_id=deposit_id,
+        meta={"reason": payload.note},
+    )
+    return result
 
 
 @router.get("/settings/deposit")
@@ -154,12 +204,21 @@ async def admin_list_kyc(status: Optional[str] = None, admin: dict = Depends(req
 
 @router.post("/kyc/{record_id}/approve")
 async def admin_approve_kyc(record_id: str, admin: dict = Depends(require_admin)):
-    return await kyc_service.admin_approve(record_id, admin["id"])
+    result = await kyc_service.admin_approve(record_id, admin["id"])
+    await audit_service.log(
+        "kyc.approve", actor=admin, entity_type="kyc_record", entity_id=record_id,
+    )
+    return result
 
 
 @router.post("/kyc/{record_id}/reject")
 async def admin_reject_kyc(record_id: str, payload: RejectKycIn, admin: dict = Depends(require_admin)):
-    return await kyc_service.admin_reject(record_id, admin["id"], payload.reason)
+    result = await kyc_service.admin_reject(record_id, admin["id"], payload.reason)
+    await audit_service.log(
+        "kyc.reject", actor=admin, entity_type="kyc_record", entity_id=record_id,
+        meta={"reason": payload.reason},
+    )
+    return result
 
 
 @router.get("/kyc/documents/{doc_id}")

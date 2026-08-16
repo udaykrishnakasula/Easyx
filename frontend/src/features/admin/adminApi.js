@@ -150,6 +150,38 @@ export function useAdminAuditLogs({ action, entity_type } = {}) {
   });
 }
 
+/* ------------------------- Reports / Exports ------------------------- */
+export function useAdminReports() {
+  return useQuery({
+    queryKey: ["admin-reports"],
+    queryFn: async () => (await api.get("/admin/reports")).data,
+  });
+}
+
+// Trigger a browser download of a dataset export (CSV or XLSX).
+export async function downloadReport(dataset, format = "csv") {
+  const res = await api.get(`/admin/reports/${dataset}`, {
+    params: { format },
+    responseType: "blob",
+  });
+  // Derive filename from Content-Disposition when available.
+  let filename = `easyx-${dataset}.${format}`;
+  const cd = res.headers?.["content-disposition"];
+  if (cd) {
+    const m = /filename="?([^"]+)"?/.exec(cd);
+    if (m) filename = m[1];
+  }
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  return filename;
+}
+
 /* Public maintenance status (no auth) — used by auth screens. */
 export function usePublicMaintenance() {
   return useQuery({

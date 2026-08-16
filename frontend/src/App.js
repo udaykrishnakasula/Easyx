@@ -30,6 +30,7 @@ import AdminDepositsPage from "@/features/admin/AdminDepositsPage";
 import AdminKycPage from "@/features/admin/AdminKycPage";
 import AdminReferralsPage from "@/features/admin/AdminReferralsPage";
 import AdminSettingsPage from "@/features/admin/AdminSettingsPage";
+import AdminReportsPage from "@/features/admin/AdminReportsPage";
 import ComingSoon from "@/features/common/ComingSoon";
 
 const Landing = () => (
@@ -89,6 +90,7 @@ function App() {
               <Route path="plans" element={<AdminPlansPage />} />
               <Route path="kyc" element={<AdminKycPage />} />
               <Route path="referrals" element={<AdminReferralsPage />} />
+              <Route path="reports" element={<AdminReportsPage />} />
               <Route path="maintenance" element={<AdminMaintenancePage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
             </Route>
